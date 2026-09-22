@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08111f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Listo" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta
+      name="description"
+      content="今日やることが、迷わず片づく。シンプルで使いやすいTODOリスト。"
+    />
+    <title>Listo — やることを、気持ちよく。</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-row">
+          <a class="brand" href="#" aria-label="Listo ホーム">
+            <span class="brand-mark"><img src="assets/icons/tempo-icon-192.png" alt="" /></span>
+            <span>Listo</span>
+          </a>
+          <button class="icon-button sidebar-close" id="sidebar-close" aria-label="メニューを閉じる">×</button>
+        </div>
+
+        <nav class="nav-list" aria-label="タスクの表示">
+          <button class="nav-item is-active" data-view="today">
+            <span class="nav-icon nav-icon--sun">☀</span><span>今日</span>
+            <span class="nav-count" data-count="today">0</span>
+          </button>
+          <button class="nav-item" data-view="all">
+            <span class="nav-icon nav-icon--inbox">⌂</span><span>すべて</span>
+            <span class="nav-count" data-count="all">0</span>
+          </button>
+          <button class="nav-item" data-view="upcoming">
+            <span class="nav-icon nav-icon--calendar">▦</span><span>近日予定</span>
+            <span class="nav-count" data-count="upcoming">0</span>
+          </button>
+          <button class="nav-item" data-view="report">
+            <span class="nav-icon nav-icon--report">▥</span><span>レポート</span>
+          </button>
+          <button class="nav-item" data-view="completed">
+            <span class="nav-icon nav-icon--check">✓</span><span>完了</span>
+            <span class="nav-count" data-count="completed">0</span>
+          </button>
+          <button class="nav-item" data-view="trash">
+            <span class="nav-icon nav-icon--trash">♲</span><span>ゴミ箱</span>
+            <span class="nav-count" data-count="trash">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-section favorite-section" id="favorite-project-section" hidden>
+          <p class="sidebar-label">お気に入り</p>
+          <div id="favorite-project-navigation"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-heading">
+            <p class="sidebar-label">プロジェクト</p>
+            <button class="project-add-button" id="open-project-dialog" type="button" aria-label="プロジェクトを追加" aria-haspopup="dialog" title="プロジェクトを追加">＋</button>
+          </div>
+          <div id="project-navigation"></div>
+        </div>
+
+        <div class="sidebar-section tag-section">
+          <div class="sidebar-section-heading">
+            <p class="sidebar-label">タグ</p>
+            <button class="project-add-button" id="open-tag-dialog" type="button" aria-label="タグを管理" aria-haspopup="dialog" title="タグを管理">⚙</button>
+          </div>
+          <button class="list-item tag-manager-link" id="open-tag-manager" type="button"><span class="nav-icon">#</span><span>タグ一覧を管理</span><span class="project-count" id="tag-count">0</span></button>
+        </div>
+
+        <div class="sidebar-section filter-section">
+          <div class="sidebar-section-heading">
+            <p class="sidebar-label">保存フィルター</p>
+            <button class="project-add-button" id="open-filter-dialog" type="button" aria-label="フィルターを追加" aria-haspopup="dialog" title="フィルターを追加">＋</button>
+          </div>
+          <div id="filter-navigation"></div>
+        </div>
+
+        <div class="sidebar-section data-section">
+          <p class="sidebar-label">データ</p>
+          <div class="data-actions">
+            <button type="button" id="sync-open-button" class="sync-open-button"><span>⌁</span><span id="sync-sidebar-label">iPhoneと同期</span><i id="sync-sidebar-dot" aria-hidden="true"></i></button>
+            <button type="button" id="csv-paste-button"><span>▣</span>CSV貼付</button>
+            <button type="button" id="csv-import-button"><span>⇧</span>CSV取込</button>
+            <button type="button" id="csv-export-button"><span>⇩</span>CSV出力</button>
+            <button type="button" id="json-export-button"><span>◇</span>JSON保存</button>
+            <button type="button" id="json-import-button"><span>◆</span>JSON復元</button>
+          </div>
+          <input id="csv-file-input" type="file" accept=".csv,text/csv" hidden />
+          <input id="json-file-input" type="file" accept=".json,application/json" hidden />
+        </div>
+
+        <div class="sidebar-tip">
+          <span class="tip-spark">✦</span>
+          <p><strong>小さく始めよう</strong><br />まず1つ終わらせると、勢いがつきます。</p>
+        </div>
+      </aside>
+
+      <div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+      <main class="main-content">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="menu-button" aria-label="メニューを開く">☰</button>
+          <div class="search-wrap">
+            <span aria-hidden="true">⌕</span>
+            <input id="search-input" type="search" placeholder="タスクを検索" aria-label="タスクを検索" />
+            <kbd>Ctrl K</kbd>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" id="theme-toggle" aria-label="配色を切り替える">◐</button>
+            <div class="avatar" aria-label="ユーザー">YOU</div>
+          </div>
+        </header>
+
+        <section class="content-wrap">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow" id="date-label"></p>
+              <h1 id="view-title">今日</h1>
+              <p class="page-subtitle" id="view-subtitle">今日に集中しましょう。</p>
+            </div>
+            <div class="progress-ring" id="progress-ring" aria-label="今日の達成率">
+              <span id="progress-value">0%</span>
+            </div>
+          </div>
+
+          <section class="deadline-summary" id="deadline-summary" aria-label="期限サマリー">
+            <header class="deadline-summary-heading">
+              <div><span aria-hidden="true">◴</span><strong>期限サマリー</strong></div>
+              <small id="deadline-total">期限あり 0件</small>
+            </header>
+            <div class="deadline-summary-grid">
+              <div class="deadline-stat deadline-stat--overdue"><span>期限切れ</span><strong data-deadline-count="overdue">0</strong><small>要対応</small></div>
+              <div class="deadline-stat deadline-stat--today"><span>今日まで</span><strong data-deadline-count="today">0</strong><small>本日中</small></div>
+              <div class="deadline-stat deadline-stat--tomorrow"><span>明日まで</span><strong data-deadline-count="tomorrow">0</strong><small>次に確認</small></div>
+              <div class="deadline-stat deadline-stat--week"><span>今後7日</span><strong data-deadline-count="week">0</strong><small>明後日以降</small></div>
+            </div>
+          </section>
+
+          <form class="quick-add" id="task-form">
+            <div class="quick-add-main">
+              <div class="quick-add-heading"><span>QUICK ADD</span><small>Enterでも追加できます</small></div>
+              <div class="quick-input-row">
+                <span class="quick-input-marker" aria-hidden="true">✓</span>
+                <input
+                  id="task-input"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  placeholder="次にやることは？"
+                  aria-label="新しいタスク"
+                  required
+                />
+              </div>
+              <div class="quick-options" id="quick-options">
+                <label class="option-chip">
+                  <span>▦</span>
+                  <select id="due-select" aria-label="期限">
+                    <option value="today">今日</option>
+                    <option value="tomorrow">明日</option>
+                    <option value="none">期限なし</option>
+                  </select>
+                </label>
+                <label class="option-chip">
+                  <span>●</span>
+                  <select id="project-select" aria-label="プロジェクト">
+                    <option>未分類</option>
+                    <option>個人</option>
+                    <option>仕事</option>
+                    <option>買い物</option>
+                  </select>
+                </label>
+                <label class="option-chip">
+                  <span>⚑</span>
+                  <select id="priority-select" aria-label="優先度">
+                    <option value="normal">通常</option>
+                    <option value="high">優先</option>
+                    <option value="low">低め</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="add-actions">
+              <button class="add-button" type="submit"><span>すぐ追加</span><small>いまの設定で保存</small></button>
+              <button class="detailed-add-button" id="open-detailed-add" type="button" aria-haspopup="dialog"><span>詳細設定して追加</span><small>タグ・工数・サブタスクも</small></button>
+            </div>
+          </form>
+
+          <div class="view-switcher" id="view-switcher" role="group" aria-label="表示方法">
+            <button class="view-mode-button is-active" type="button" data-mode="list"><span>☷</span> リスト</button>
+            <button class="view-mode-button" type="button" data-mode="table"><span>▤</span> テーブル</button>
+            <button class="view-mode-button" type="button" data-mode="board"><span>▦</span> カンバン</button>
+            <button class="view-mode-button" type="button" data-mode="timeline"><span>↔</span> タイムライン</button>
+          </div>
+
+          <div class="list-toolbar" id="list-toolbar">
+            <p id="task-summary">0件のタスク</p>
+            <div class="toolbar-actions">
+              <label class="compact-select sort-control" id="group-control">
+                <span>グループ</span>
+                <select id="group-select" aria-label="グループ表示">
+                  <option value="project">プロジェクト別</option>
+                  <option value="tag">タグ別</option>
+                  <option value="priority">優先度別</option>
+                  <option value="none">グループなし</option>
+                </select>
+              </label>
+              <label class="compact-select sort-control">
+                <span>第1条件</span>
+                <select id="sort-primary" aria-label="並べ替えの第1条件">
+                  <option value="due">期限が近い順</option>
+                  <option value="priority">優先度が高い順</option>
+                  <option value="status">進捗順</option>
+                  <option value="newest">新しい順</option>
+                  <option value="oldest">古い順</option>
+                </select>
+              </label>
+              <span class="sort-plus">＋</span>
+              <label class="compact-select sort-control">
+                <span>第2条件</span>
+                <select id="sort-secondary" aria-label="並べ替えの第2条件">
+                  <option value="priority">優先度が高い順</option>
+                  <option value="due">期限が近い順</option>
+                  <option value="status">進捗順</option>
+                  <option value="project">プロジェクト順</option>
+                  <option value="none">指定なし</option>
+                </select>
+              </label>
+              <button class="text-button" id="clear-completed" type="button">完了を整理</button>
+            </div>
+          </div>
+
+          <div class="task-list" id="task-list" aria-live="polite"></div>
+          <div class="table-view" id="table-view" aria-live="polite" hidden></div>
+          <div class="kanban-board" id="kanban-board" aria-live="polite" hidden></div>
+          <div class="timeline-view" id="timeline-view" aria-live="polite" hidden></div>
+          <div class="upcoming-calendar" id="upcoming-calendar" aria-live="polite" hidden></div>
+          <div class="report-view" id="report-view" aria-live="polite" hidden></div>
+
+          <div class="empty-state" id="empty-state" hidden>
+            <div class="empty-illustration"><span>✓</span></div>
+            <h2 id="empty-title">いい流れです。</h2>
+            <p id="empty-message">ここに表示するタスクはありません。<br />思いついたら上から追加しましょう。</p>
+            <button class="primary-soft-button" id="focus-add" type="button">タスクを追加する</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-message"></span><button id="undo-button" type="button" hidden>元に戻す</button></div>
+
+    <template id="task-template">
+      <article class="task-card">
+        <button class="task-check" aria-label="完了にする"><span>✓</span></button>
+        <div class="task-body">
+          <p class="task-title"></p>
+          <div class="task-meta">
+            <span class="task-date"></span>
+            <span class="task-project-label"></span>
+            <span class="status-label"></span>
+            <span class="repeat-label" hidden></span>
+            <span class="effort-label"></span>
+            <span class="subtask-label"></span>
+            <span class="priority-label" hidden>優先</span>
+          </div>
+          <div class="tag-row"></div>
+        </div>
+        <button class="task-timer-button" type="button" aria-label="時間計測を開始"><span class="timer-icon">▶</span><span class="timer-value">開始</span></button>
+        <button class="priority-button" type="button" aria-label="優先度を切り替える">⚑</button>
+        <button class="more-button" aria-label="タスクを編集">•••</button>
+      </article>
+    </template>
+
+    <dialog class="task-dialog" id="task-dialog">
+      <form method="dialog" class="dialog-shell" id="edit-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow" id="task-dialog-eyebrow">TASK DETAILS</p>
+            <h2 id="task-dialog-title">タスクを編集</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="task-dialog" aria-label="閉じる">×</button>
+        </header>
+
+        <input type="hidden" id="edit-id" />
+        <label class="field field--wide">
+          <span>タスク名</span>
+          <input id="edit-title" maxlength="120" required />
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>ステータス</span>
+            <select id="edit-status">
+              <option value="todo">未着手</option>
+              <option value="doing">進行中</option>
+              <option value="done">完了</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>優先度</span>
+            <select id="edit-priority">
+              <option value="high">高</option>
+              <option value="normal">通常</option>
+              <option value="low">低</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>期限</span>
+            <input id="edit-due" type="date" />
+          </label>
+          <label class="field">
+            <span>プロジェクト</span>
+            <select id="edit-project" aria-label="プロジェクトを選択"></select>
+          </label>
+          <label class="field">
+            <span>新しいプロジェクト（任意）</span>
+            <input id="edit-new-project" maxlength="30" placeholder="新規作成するときだけ入力" />
+          </label>
+          <label class="field">
+            <span>タグ（カンマ区切り）</span>
+            <input id="edit-tags" maxlength="80" placeholder="重要, 連絡" />
+          </label>
+          <label class="field">
+            <span>繰り返し</span>
+            <select id="edit-repeat">
+              <option value="none">繰り返さない</option>
+              <option value="daily">毎日</option>
+              <option value="weekdays">平日のみ</option>
+              <option value="weekly">毎週</option>
+              <option value="monthly">毎月</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="effort-panel">
+          <div class="effort-heading">
+            <div><span class="section-icon">◷</span><strong>工数管理</strong></div>
+            <span id="effort-balance"></span>
+          </div>
+          <div class="timer-panel" id="timer-panel">
+            <div>
+              <strong id="timer-display">00:00:00</strong>
+              <small>開始から停止までを実績時間へ自動加算します</small>
+            </div>
+            <button id="toggle-task-timer" type="button"><span>▶</span> 計測を開始</button>
+          </div>
+          <div class="field-grid field-grid--effort">
+            <label class="field"><span>見積時間</span><div class="number-input"><input id="edit-estimate" type="number" min="0" max="999" step="0.5" /><b>時間</b></div></label>
+            <label class="field"><span>実績時間</span><div class="number-input"><input id="edit-actual" type="number" min="0" max="999" step="0.5" /><b>時間</b></div></label>
+          </div>
+        </div>
+
+        <section class="subtask-editor">
+          <div class="subtask-heading">
+            <div><span class="section-icon">☑</span><strong>サブタスク</strong></div>
+            <span id="subtask-progress">0 / 0</span>
+          </div>
+          <div id="subtask-list"></div>
+          <div class="subtask-add-row">
+            <input id="subtask-input" type="text" maxlength="80" placeholder="サブタスクを追加" />
+            <button id="add-subtask" type="button">追加</button>
+          </div>
+        </section>
+
+        <footer class="dialog-footer">
+          <button class="danger-button" id="delete-task" type="button">削除</button>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="task-dialog">キャンセル</button>
+            <button class="save-button" id="save-task" type="submit" value="default">変更を保存</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="project-dialog filter-dialog" id="filter-dialog">
+      <form method="dialog" class="project-dialog-shell" id="filter-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow" id="filter-dialog-eyebrow">SAVED FILTER</p>
+            <h2 id="filter-dialog-title">フィルターを保存</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="filter-dialog" aria-label="閉じる">×</button>
+        </header>
+        <input type="hidden" id="filter-id" />
+        <label class="field field--wide">
+          <span>フィルター名</span>
+          <input id="filter-name" maxlength="30" placeholder="例：今週の重要タスク" required />
+        </label>
+        <div class="field-grid filter-field-grid">
+          <label class="field"><span>プロジェクト</span><select id="filter-project"></select></label>
+          <label class="field"><span>ステータス</span><select id="filter-status"><option value="any">すべて</option><option value="todo">未着手</option><option value="doing">進行中</option><option value="done">完了</option></select></label>
+          <label class="field"><span>優先度</span><select id="filter-priority"><option value="any">すべて</option><option value="high">高</option><option value="normal">通常</option><option value="low">低</option></select></label>
+          <label class="field"><span>期限</span><select id="filter-due"><option value="any">すべて</option><option value="overdue">期限切れ</option><option value="today">今日</option><option value="tomorrow">明日</option><option value="week">今後7日</option><option value="none">期限なし</option></select></label>
+          <label class="field"><span>タグ</span><input id="filter-tag" maxlength="30" placeholder="例：重要" /></label>
+        </div>
+        <p class="project-dialog-help">指定した条件はすべて組み合わせて絞り込みます。</p>
+        <footer class="dialog-footer project-dialog-footer">
+          <span></span>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="filter-dialog">キャンセル</button>
+            <button class="save-button" id="save-filter" type="submit" value="default">保存する</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="project-dialog" id="project-dialog">
+      <form method="dialog" class="project-dialog-shell" id="project-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">NEW PROJECT</p>
+            <h2>プロジェクトを追加</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="project-dialog" aria-label="閉じる">×</button>
+        </header>
+        <label class="field field--wide">
+          <span>プロジェクト名</span>
+          <input id="new-project-name" maxlength="30" autocomplete="off" placeholder="例：旅行の準備" required />
+        </label>
+        <label class="favorite-project-option"><input id="new-project-favorite" type="checkbox" /> <span>お気に入りに追加して上部へ表示</span></label>
+        <p class="project-dialog-help">追加後、そのプロジェクトを開いた状態になります。</p>
+        <footer class="dialog-footer project-dialog-footer">
+          <span></span>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="project-dialog">キャンセル</button>
+            <button class="save-button" type="submit" value="default">追加する</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="project-dialog tag-dialog" id="tag-dialog">
+      <div class="project-dialog-shell">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">TAG MANAGER</p>
+            <h2>タグ一覧を管理</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="tag-dialog" aria-label="閉じる">×</button>
+        </header>
+        <div class="tag-manager-add">
+          <input id="new-tag-name" maxlength="30" autocomplete="off" placeholder="新しいタグ名" aria-label="新しいタグ名" />
+          <button class="save-button" id="add-tag" type="button">追加</button>
+        </div>
+        <p class="project-dialog-help">名称変更や削除は、そのタグを使うすべてのタスクと保存フィルターへ反映されます。</p>
+        <div class="tag-manager-list" id="tag-manager-list"></div>
+        <p class="tag-manager-empty" id="tag-manager-empty" hidden>登録されたタグはありません。</p>
+        <footer class="dialog-footer project-dialog-footer">
+          <span></span>
+          <button class="secondary-button" type="button" data-close-dialog="tag-dialog">閉じる</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <dialog class="import-dialog" id="csv-import-dialog">
+      <form method="dialog" class="import-dialog-shell" id="csv-import-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">IMPORT FROM EXCEL</p>
+            <h2>CSVを取り込む</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="csv-import-dialog" aria-label="閉じる">×</button>
+        </header>
+
+        <div class="import-file-summary">
+          <span class="import-file-icon">CSV</span>
+          <div><strong id="csv-file-name">CSVを貼り付け</strong><small id="csv-file-meta">Excelの表をコピーしても使えます</small></div>
+          <button type="button" id="change-csv-file">ファイル選択</button>
+        </div>
+
+        <section class="csv-paste-panel" id="csv-paste-panel">
+          <label for="csv-paste-input"><strong>CSV全文またはExcelの表を貼り付け</strong><small>1行目を見出しとして読み取ります。Excelからのタブ区切り貼り付けにも対応しています。</small></label>
+          <textarea id="csv-paste-input" rows="7" spellcheck="false" placeholder="タスク名,ステータス,優先度,期限,プロジェクト&#10;資料を確認,未着手,高,2026/07/30,仕事"></textarea>
+          <div><button class="save-button" id="parse-csv-paste" type="button">貼り付け内容を確認</button></div>
+        </section>
+
+        <div id="csv-import-content" hidden>
+          <div class="import-option-grid">
+            <label class="field">
+              <span>取り込み方法</span>
+              <select id="csv-import-mode">
+                <option value="append">現在のタスクへ追加</option>
+                <option value="replace">すべて置き換え</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>重複タスク</span>
+              <select id="csv-duplicate-mode">
+                <option value="skip">同じタスクはスキップ</option>
+                <option value="include">重複しても取り込む</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="mapping-panel">
+            <div class="import-section-heading">
+              <div><span class="section-icon">↔</span><strong>列の割り当て</strong></div>
+              <small>自動判定済み。必要なら変更できます。</small>
+            </div>
+            <div class="mapping-grid" id="csv-mapping-grid"></div>
+          </section>
+
+          <section class="preview-panel">
+            <div class="import-section-heading">
+              <div><span class="section-icon">▦</span><strong>取り込みプレビュー</strong></div>
+              <small id="csv-preview-summary"></small>
+            </div>
+            <div class="csv-preview-scroll">
+              <table class="csv-preview-table">
+                <thead id="csv-preview-head"></thead>
+                <tbody id="csv-preview-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <p class="import-error" id="csv-import-error" role="alert"></p>
+        <footer class="dialog-footer">
+          <small class="import-note">ファイル選択が制限されている環境では「CSV貼付」を利用できます。</small>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="csv-import-dialog">キャンセル</button>
+            <button class="save-button" id="execute-csv-import" type="submit" disabled>取り込む</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="project-dialog sync-dialog" id="sync-dialog">
+      <div class="project-dialog-shell sync-dialog-shell">
+        <header class="dialog-header sync-dialog-header">
+          <div>
+            <p class="dialog-eyebrow">LISTO CLOUD</p>
+            <h2>iPhoneでも、同じタスクを。</h2>
+            <p class="sync-dialog-lead">最初の1回だけ準備すれば、Mac・Web・iPhoneの変更を自動で揃えます。</p>
+          </div>
+          <button class="dialog-close" id="sync-dialog-close" type="button" aria-label="閉じる">×</button>
+        </header>
+
+        <section class="sync-status-card" id="sync-status-card" data-state="local" aria-live="polite">
+          <span class="sync-status-icon" aria-hidden="true">⌁</span>
+          <div><strong id="sync-status-title">この端末だけで保存中</strong><small id="sync-status-detail">同期を設定しなくても、これまでどおり利用できます。</small></div>
+        </section>
+
+        <ol class="sync-steps" aria-label="同期の準備手順">
+          <li class="sync-step" id="sync-step-cloud" data-state="current"><span>1</span><div><strong>同期を準備</strong><small>初回だけ</small></div></li>
+          <li class="sync-step" id="sync-step-account" data-state="upcoming"><span>2</span><div><strong>アカウント</strong><small>Macで登録</small></div></li>
+          <li class="sync-step" id="sync-step-iphone" data-state="upcoming"><span>3</span><div><strong>iPhoneで開く</strong><small>リンクを送信</small></div></li>
+        </ol>
+
+        <details class="sync-section sync-advanced" id="sync-cloud-setup" open>
+          <summary><span class="sync-step-number">1</span><div><strong>同期の保管場所を準備</strong><small>初回だけ必要なクラウド設定です</small></div><i>⌄</i></summary>
+          <div class="sync-advanced-content">
+            <p class="sync-plain-help">管理画面から2つの値を貼り付けると準備完了です。秘密の管理者キーは使用しません。</p>
+            <div class="field-grid sync-config-grid">
+              <label class="field field--wide"><span>Supabase Project URL</span><input id="sync-supabase-url" type="url" inputmode="url" autocomplete="url" placeholder="https://xxxxx.supabase.co" /></label>
+              <label class="field field--wide"><span>Publishable / Anon key</span><input id="sync-anon-key" type="password" autocomplete="off" placeholder="公開用キーを貼り付け" /></label>
+            </div>
+            <button class="save-button sync-config-save" id="sync-save-config" type="button">準備を完了する</button>
+          </div>
+        </details>
+
+        <section class="sync-section" id="sync-auth-section">
+          <div class="sync-section-heading"><div class="sync-section-title"><span class="sync-step-number">2</span><div><strong>同期アカウント</strong><small>MacとiPhoneで同じものを使います</small></div></div></div>
+          <div class="field-grid">
+            <label class="field"><span>メールアドレス</span><input id="sync-email" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+            <label class="field"><span>パスワード</span><input id="sync-password" type="password" autocomplete="current-password" minlength="8" placeholder="8文字以上" /></label>
+          </div>
+          <div class="sync-auth-actions">
+            <button class="secondary-button" id="sync-sign-up" type="button">アカウントを作成</button>
+            <button class="save-button" id="sync-sign-in" type="button">ログインして同期を開始</button>
+          </div>
+          <p class="sync-auth-feedback" id="sync-auth-feedback" data-state="idle" role="status" aria-live="polite">ボタンを押すと、ここに結果が表示されます。</p>
+          <p class="sync-auth-persistence">✓ 一度ログインすると、この端末では次回から自動で再接続します。</p>
+        </section>
+
+        <section class="sync-section sync-session-section" id="sync-session-section" hidden>
+          <div><strong id="sync-account-email">ログイン中</strong><small>変更はローカルへ保存後、自動的に同期されます。</small></div>
+          <div class="sync-auth-actions">
+            <button class="secondary-button" id="sync-sign-out" type="button">ログアウト</button>
+            <button class="save-button" id="sync-now" type="button">今すぐ同期</button>
+          </div>
+        </section>
+
+        <section class="sync-section sync-iphone-section" id="sync-iphone-section">
+          <div class="sync-section-heading"><div class="sync-section-title"><span class="sync-step-number">3</span><div><strong>iPhoneへ送る</strong><small>リンクを開くだけで接続設定が入ります</small></div></div></div>
+          <button class="save-button sync-iphone-share" id="sync-share-iphone" type="button">iPhoneで開くリンクを送る</button>
+          <label class="field field--wide sync-share-link" id="sync-share-link-field" hidden><span>このリンクをiPhoneのSafariで開く</span><input id="sync-share-link" type="text" readonly /></label>
+          <ol class="sync-iphone-guide">
+            <li><span>1</span>iPhoneで届いたリンクをSafariで開く</li>
+            <li><span>2</span>同じメールアドレスとパスワードでログイン</li>
+            <li><span>3</span>共有メニューから「ホーム画面に追加」</li>
+          </ol>
+          <small class="sync-share-help">リンクに含まれるのは公開用の接続情報だけです。パスワードとタスク内容は含みません。</small>
+        </section>
+
+        <p class="import-error sync-error" id="sync-error" role="alert"></p>
+        <p class="project-dialog-help">同期できない時もタスクはこの端末に自動保存され、接続が戻ると再同期します。</p>
+      </div>
+    </dialog>
+
+    <script src="task-core.js"></script>
+    <script src="script.js"></script>
+    <script src="sync-core.js"></script>
+    <script src="sync-config.js"></script>
+    <script src="sync.js"></script>
+    <script src="pwa.js"></script>
+  </body>
+</html>

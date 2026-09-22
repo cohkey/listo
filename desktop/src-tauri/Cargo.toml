@@ -1,0 +1,20 @@
+[package]
+name = "tempo_app"
+version = "0.1.0"
+description = "Listo TODO for macOS and iPhone"
+authors = ["cohkey"]
+edition = "2021"
+
+[lib]
+name = "tempo_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
