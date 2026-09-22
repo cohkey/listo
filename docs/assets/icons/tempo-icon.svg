@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Listo">
+  <rect width="512" height="512" fill="#f7f3ea"/>
+  <path d="M177 130v229c0 70 83 104 132 54l105-106" fill="none" stroke="#f46f52" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M105 208h151" fill="none" stroke="#f46f52" stroke-width="52" stroke-linecap="round"/>
+  <circle cx="347" cy="247" r="22" fill="#e5b94b"/>
+</svg>
