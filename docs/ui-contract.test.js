@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const html = fs.readFileSync("index.html", "utf8");
 const script = fs.readFileSync("script.js", "utf8");
 const syncScript = fs.readFileSync("sync.js", "utf8");
+const todoistScript = fs.readFileSync("todoist-import.js", "utf8");
 const pwaScript = fs.readFileSync("pwa.js", "utf8");
 const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
 const syncConfig = fs.readFileSync("sync-config.js", "utf8");
@@ -50,10 +51,26 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v4/);
+  assert.match(serviceWorker, /listo-shell-v5/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
+});
+
+test("TodoistのZIPまたは複数CSVを専用画面から安全に移行できる", () => {
+  assert.match(html, /id="todoist-import-button"/);
+  assert.match(html, /id="todoist-file-input"[^>]*accept="\.zip,\.csv/);
+  assert.match(html, /id="todoist-file-input"[^>]*multiple/);
+  assert.match(html, /id="todoist-import-dialog"/);
+  assert.match(html, /id="todoist-preview-body"/);
+  assert.match(html, /id="todoist-warning-list"/);
+  assert.match(html, /<script src="todoist-import\.js"><\/script>/);
+  assert.match(script, /ListoTodoist\.readSelectedFiles/);
+  assert.match(script, /ListoTodoist\.convertTodoistCSV/);
+  assert.match(todoistScript, /TYPE/);
+  assert.match(todoistScript, /DecompressionStream\("deflate-raw"\)/);
+  assert.match(serviceWorker, /todoist-import\.js/);
+  assert.match(css, /\.todoist-summary-grid/);
 });
 
 test("公開用のSupabase接続情報だけを初期設定に使う", () => {
@@ -154,9 +171,9 @@ test("詳細追加は新規作成、既存詳細は編集として保存され�
 
 test("×とキャンセルは送信ではなく閉じる専用ボタンになっている", () => {
   const closeButtons = [...html.matchAll(/<button[^>]*data-close-dialog="([^"]+)"[^>]*>/g)];
-  assert.equal(closeButtons.length, 10);
+  assert.equal(closeButtons.length, 12);
   closeButtons.forEach((match) => assert.match(match[0], /type="button"/));
-  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog"]);
+  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
   assert.doesNotMatch(html, /class="dialog-close" value="cancel"/);
   assert.match(script, /closeDialog\(document\.getElementById\(closeButton\.dataset\.closeDialog\)\)/);
 });

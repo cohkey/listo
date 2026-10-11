@@ -95,11 +95,13 @@
             <button type="button" id="sync-open-button" class="sync-open-button"><span>⌁</span><span id="sync-sidebar-label">iPhoneと同期</span><i id="sync-sidebar-dot" aria-hidden="true"></i></button>
             <button type="button" id="csv-paste-button"><span>▣</span>CSV貼付</button>
             <button type="button" id="csv-import-button"><span>⇧</span>CSV取込</button>
+            <button type="button" id="todoist-import-button" class="todoist-import-button"><span>↗</span>Todoist移行</button>
             <button type="button" id="csv-export-button"><span>⇩</span>CSV出力</button>
             <button type="button" id="json-export-button"><span>◇</span>JSON保存</button>
             <button type="button" id="json-import-button"><span>◆</span>JSON復元</button>
           </div>
           <input id="csv-file-input" type="file" accept=".csv,text/csv" hidden />
+          <input id="todoist-file-input" type="file" accept=".zip,.csv,application/zip,text/csv" multiple hidden />
           <input id="json-file-input" type="file" accept=".json,application/json" hidden />
         </div>
 
@@ -538,6 +540,71 @@
       </form>
     </dialog>
 
+    <dialog class="import-dialog" id="todoist-import-dialog">
+      <form method="dialog" class="import-dialog-shell" id="todoist-import-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">MOVE FROM TODOIST</p>
+            <h2>Todoistから移行</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="todoist-import-dialog" aria-label="閉じる">×</button>
+        </header>
+
+        <div class="import-file-summary">
+          <span class="import-file-icon todoist-file-icon">ZIP</span>
+          <div><strong id="todoist-file-name">Todoistバックアップ</strong><small id="todoist-file-meta">ZIPまたは複数のプロジェクトCSVに対応</small></div>
+          <button type="button" id="change-todoist-file">選び直す</button>
+        </div>
+
+        <div id="todoist-import-content" hidden>
+          <div class="todoist-summary-grid" aria-label="Todoist取り込み概要">
+            <div><span>プロジェクト</span><strong id="todoist-project-count">0</strong></div>
+            <div><span>タスク</span><strong id="todoist-task-count">0</strong></div>
+            <div><span>サブタスク</span><strong id="todoist-subtask-count">0</strong></div>
+            <div><span>確認事項</span><strong id="todoist-warning-count">0</strong></div>
+          </div>
+
+          <div class="import-option-grid todoist-options">
+            <label class="field">
+              <span>重複タスク</span>
+              <select id="todoist-duplicate-mode">
+                <option value="skip">同じタスクはスキップ</option>
+                <option value="include">重複しても取り込む</option>
+              </select>
+            </label>
+            <p>現在のListoデータは消さず、Todoistのタスクを追加します。</p>
+          </div>
+
+          <section class="preview-panel">
+            <div class="import-section-heading">
+              <div><span class="section-icon">▦</span><strong>取り込みプレビュー</strong></div>
+              <small id="todoist-preview-summary"></small>
+            </div>
+            <div class="csv-preview-scroll">
+              <table class="csv-preview-table">
+                <thead><tr><th>タスク名</th><th>プロジェクト</th><th>優先度</th><th>期限</th><th>繰り返し</th><th>タグ</th></tr></thead>
+                <tbody id="todoist-preview-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <details class="todoist-warning-panel" id="todoist-warning-panel" hidden>
+            <summary>確認が必要な項目</summary>
+            <ul id="todoist-warning-list"></ul>
+          </details>
+        </div>
+
+        <p class="import-error" id="todoist-import-error" role="alert"></p>
+        <footer class="dialog-footer">
+          <small class="import-note">Todoistの完了済みタスクは、バックアップCSVに含まれている場合だけ取り込まれます。</small>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="todoist-import-dialog">キャンセル</button>
+            <button class="save-button" id="execute-todoist-import" type="submit" disabled>Listoへ追加</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
     <dialog class="project-dialog sync-dialog" id="sync-dialog">
       <div class="project-dialog-shell sync-dialog-shell">
         <header class="dialog-header sync-dialog-header">
@@ -612,6 +679,7 @@
     </dialog>
 
     <script src="task-core.js"></script>
+    <script src="todoist-import.js"></script>
     <script src="script.js"></script>
     <script src="sync-core.js"></script>
     <script src="sync-config.js"></script>

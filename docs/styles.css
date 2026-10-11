@@ -427,6 +427,7 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
 .sync-open-button[data-sync-state="pending"] i, .sync-open-button[data-sync-state="syncing"] i { background: var(--yellow); box-shadow: 0 0 0 3px rgba(237,182,76,.17); }
 .sync-open-button[data-sync-state="error"] i, .sync-open-button[data-sync-state="offline"] i { background: var(--accent); box-shadow: 0 0 0 3px rgba(244,111,82,.15); }
 .data-actions #csv-paste-button { grid-column: 1 / -1; justify-content: center; border-color: #f0c8bc; background: #fff4ef; color: #a94e3b; }
+.data-actions .todoist-import-button { grid-column: 1 / -1; justify-content: center; border-color: #d6c9f4; background: #f6f1ff; color: #6850a8; }
 
 .view-switcher { display: inline-flex; gap: 4px; margin-top: 22px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.42); }
 .view-mode-button { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; transition: .2s; }
@@ -703,6 +704,17 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
 .csv-preview-table tr:last-child td { border-bottom: 0; }
 .import-error { min-height: 15px; margin: 10px 2px 0; color: var(--accent); font-size: 10px; }
 .import-note { align-self: center; color: var(--muted); font-size: 8px; }
+.todoist-file-icon { background: #eee8ff; color: #6d55b5; }
+.todoist-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.todoist-summary-grid > div { padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-strong); }
+.todoist-summary-grid span, .todoist-summary-grid strong { display: block; }
+.todoist-summary-grid span { color: var(--muted); font-size: 8px; }
+.todoist-summary-grid strong { margin-top: 5px; font-size: 18px; }
+.todoist-options { align-items: end; }
+.todoist-options > p { margin: 0; padding: 10px 12px; color: var(--muted); font-size: 9px; line-height: 1.55; }
+.todoist-warning-panel { margin-top: 12px; padding: 11px 13px; border: 1px solid #e9c97f; border-radius: 12px; background: rgba(243,189,85,.08); }
+.todoist-warning-panel summary { cursor: pointer; font-size: 10px; font-weight: 700; }
+.todoist-warning-panel ul { max-height: 130px; margin: 9px 0 0; padding-left: 18px; overflow: auto; color: var(--muted); font-size: 9px; line-height: 1.6; }
 .danger-button, .secondary-button, .save-button { padding: 9px 14px; border-radius: 10px; font-size: 11px; font-weight: 700; }
 .danger-button { border: 0; background: transparent; color: var(--accent); }
 .secondary-button { border: 1px solid var(--line); background: transparent; color: var(--muted); }
@@ -772,6 +784,10 @@ body.is-dark .data-actions button { border-color: #41423d; }
 body.is-dark .quick-add { border-color: #454640; background: linear-gradient(135deg, #30312e, #292a27); }
 body.is-dark .quick-input-marker { border-color: #5a5b54; color: #8d8a80; }
 body.is-dark .data-actions #csv-paste-button { border-color: #69483e; background: #3c302c; color: #ef9a85; }
+body.is-dark .data-actions .todoist-import-button { border-color: #473d78; background: rgba(91,72,165,.2); color: #b8a8ff; }
+body.is-dark .todoist-file-icon { background: rgba(100,78,190,.22); color: #b9a8ff; }
+body.is-dark .todoist-summary-grid > div { border-color: #294363; background: #091727; }
+body.is-dark .todoist-warning-panel { border-color: rgba(243,189,85,.38); background: rgba(116,73,22,.24); }
 body.is-dark .import-file-summary, body.is-dark .mapping-panel, body.is-dark .preview-panel { background: #272825; border-color: #3d3e39; }
 body.is-dark .csv-paste-panel { border-color: #3d3e39; background: #272825; }
 body.is-dark .csv-paste-panel textarea { border-color: #42433e; background: #222320; color: #f3f0e7; }
@@ -810,6 +826,7 @@ body.is-dark .csv-preview-table th { background: #30312d; }
   .import-section-heading { align-items: flex-start; flex-direction: column; }
   .import-dialog .dialog-footer { flex-direction: column; }
   .import-dialog .dialog-footer > div { width: 100%; }
+  .todoist-summary-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* Listo Midnight: the app icon's navy, cyan and indigo design language. */

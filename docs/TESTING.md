@@ -8,13 +8,14 @@
 
 ```powershell
 node --check task-core.js
+node --check todoist-import.js
 node --check script.js
 node --check sync-core.js
 node --check sync.js
 node --check sync-config.js
 node --check pwa.js
 node --check service-worker.js
-node --test task-core.test.js sync-core.test.js ui-contract.test.js
+node --test task-core.test.js todoist-import.test.js sync-core.test.js ui-contract.test.js
 git diff --check
 ```
 
@@ -53,6 +54,15 @@ git diff --check
 - 壊れた同期データを読み込んでもアプリを停止させないこと
 - アクセストークンと更新トークンを保存し、有効期限前に自動更新できること
 - 登録済み、確認メール未完了、通信失敗を分かりやすい日本語で案内すること
+
+### `todoist-import.test.js` で確認すること
+
+- TodoistのプロジェクトCSV名からプロジェクト名と内部IDを分離すること
+- `TYPE=task`だけを取り込み、メタ情報とリマインダーを除外すること
+- Todoistの優先度、`@ラベル`、日本語の期限・繰り返しをListo形式へ変換すること
+- インデントされた子タスクと説明文をListoのサブタスクとして保持すること
+- 日本語名を含むZIPから複数CSVを安全に展開できること
+- 複数プロジェクトの件数と警告を正しく集約すること
 
 ## Macアプリ自動テスト
 
@@ -115,6 +125,10 @@ iPhone用の `npm run ios:init` と `npm run ios:build` は、フル版XcodeとA
 38. 接続済みの場合は技術設定が自動で折り畳まれ、iPhoneへのリンク送信と「ホーム画面に追加」の案内が迷わず見つかる。
 39. 同期アカウントで「アカウントを作成」を押すと、ボタンが「作成中…」に変わり、成功・確認メール待ち・失敗の結果が入力欄の直下に表示される。
 40. ログイン後にページを再読み込み、アプリを再起動してもログイン表示と自動同期が維持される。アクセストークンの期限後は更新トークンで自動復帰する。
+41. 「Todoist移行」でTodoistバックアップZIPを選び、プロジェクト数・タスク数・サブタスク数・確認事項が表示される。
+42. Todoist移行のプレビューでプロジェクト、優先度、期限、繰り返し、タグが元CSVどおり変換され、取り込み前にはListoの既存タスクが変わらない。
+43. Todoist移行を確定すると既存データを残したまま追加され、同じタスクを再度取り込んだ場合は既定で重複がスキップされる。
+44. ZIPを展開した複数CSVをまとめて選択しても、ファイル名ごとに別プロジェクトとして取り込まれる。
 
 ## 変更時のルール
 

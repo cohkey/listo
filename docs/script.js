@@ -90,6 +90,7 @@ const state = {
   subtaskDraft: [],
   csvParsed: null,
   csvMapping: {},
+  todoistImport: null,
   calendarOffset: 0,
 };
 
@@ -188,6 +189,23 @@ const elements = {
   csvDuplicateMode: document.querySelector("#csv-duplicate-mode"),
   csvImportError: document.querySelector("#csv-import-error"),
   executeCsvImport: document.querySelector("#execute-csv-import"),
+  todoistFileInput: document.querySelector("#todoist-file-input"),
+  todoistImportDialog: document.querySelector("#todoist-import-dialog"),
+  todoistImportForm: document.querySelector("#todoist-import-form"),
+  todoistImportContent: document.querySelector("#todoist-import-content"),
+  todoistFileName: document.querySelector("#todoist-file-name"),
+  todoistFileMeta: document.querySelector("#todoist-file-meta"),
+  todoistProjectCount: document.querySelector("#todoist-project-count"),
+  todoistTaskCount: document.querySelector("#todoist-task-count"),
+  todoistSubtaskCount: document.querySelector("#todoist-subtask-count"),
+  todoistWarningCount: document.querySelector("#todoist-warning-count"),
+  todoistPreviewSummary: document.querySelector("#todoist-preview-summary"),
+  todoistPreviewBody: document.querySelector("#todoist-preview-body"),
+  todoistWarningPanel: document.querySelector("#todoist-warning-panel"),
+  todoistWarningList: document.querySelector("#todoist-warning-list"),
+  todoistDuplicateMode: document.querySelector("#todoist-duplicate-mode"),
+  todoistImportError: document.querySelector("#todoist-import-error"),
+  executeTodoistImport: document.querySelector("#execute-todoist-import"),
   filterNavigation: document.querySelector("#filter-navigation"),
   filterDialog: document.querySelector("#filter-dialog"),
   filterForm: document.querySelector("#filter-form"),
@@ -1335,6 +1353,69 @@ function openCsvPasteDialog() {
   requestAnimationFrame(() => elements.csvPasteInput.focus());
 }
 
+function openTodoistFilePicker() {
+  elements.todoistFileInput.value = "";
+  elements.todoistFileInput.click();
+}
+
+function renderTodoistImportPreview(result, selectedNames) {
+  state.todoistImport = result;
+  elements.todoistFileName.textContent = selectedNames.length === 1 ? selectedNames[0] : `${selectedNames.length}個のファイル`;
+  elements.todoistFileMeta.textContent = `${result.conversions.length}個のCSVを解析しました`;
+  elements.todoistProjectCount.textContent = result.projects.length;
+  elements.todoistTaskCount.textContent = result.tasks.length;
+  elements.todoistSubtaskCount.textContent = result.totals.subtasks || 0;
+  elements.todoistWarningCount.textContent = result.warnings.length;
+  elements.todoistPreviewSummary.textContent = `${result.tasks.length}件・${result.projects.length}プロジェクト`;
+  elements.todoistPreviewBody.replaceChildren();
+  const priorityLabels = { high: "高", normal: "通常", low: "低" };
+  const repeatLabels = { none: "なし", daily: "毎日", weekdays: "平日", weekly: "毎週", monthly: "毎月" };
+  result.tasks.slice(0, 12).forEach((task) => {
+    const row = document.createElement("tr");
+    [task.title, task.project, priorityLabels[task.priority], task.due || "期限なし", repeatLabels[task.repeat], task.tags.join("、") || "なし"].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      cell.title = value;
+      row.append(cell);
+    });
+    elements.todoistPreviewBody.append(row);
+  });
+  elements.todoistWarningList.replaceChildren();
+  result.warnings.slice(0, 30).forEach((warning) => {
+    const item = document.createElement("li");
+    item.textContent = `${warning.fileName} ${warning.row}行目：${warning.message}`;
+    elements.todoistWarningList.append(item);
+  });
+  if (result.warnings.length > 30) {
+    const item = document.createElement("li");
+    item.textContent = `ほか${result.warnings.length - 30}件`;
+    elements.todoistWarningList.append(item);
+  }
+  elements.todoistWarningPanel.hidden = !result.warnings.length;
+  elements.todoistImportContent.hidden = false;
+  elements.executeTodoistImport.disabled = !result.tasks.length;
+}
+
+async function prepareTodoistImport(files) {
+  elements.todoistImportError.textContent = "";
+  elements.todoistImportContent.hidden = true;
+  elements.executeTodoistImport.disabled = true;
+  state.todoistImport = null;
+  if (!elements.todoistImportDialog.open) elements.todoistImportDialog.showModal();
+  try {
+    const selected = Array.from(files || []);
+    elements.todoistFileName.textContent = "読み取り中…";
+    elements.todoistFileMeta.textContent = "ZIP内のプロジェクトCSVを確認しています";
+    const sources = await ListoTodoist.readSelectedFiles(selected);
+    const conversions = sources.map((source) => ListoTodoist.convertTodoistCSV(source.text, source.name, { referenceDate: todayISO() }));
+    renderTodoistImportPreview(ListoTodoist.combineConversions(conversions), selected.map((file) => file.name));
+  } catch (error) {
+    elements.todoistFileName.textContent = "読み取れませんでした";
+    elements.todoistFileMeta.textContent = "Todoistバックアップを確認してください";
+    elements.todoistImportError.textContent = error.message;
+  }
+}
+
 function currentBackupSettings() {
   return {
     theme: document.body.classList.contains("is-dark") ? "dark" : "light",
@@ -1939,6 +2020,8 @@ document.querySelector("#csv-import-button").addEventListener("click", () => {
   elements.csvFileInput.value = "";
   elements.csvFileInput.click();
 });
+document.querySelector("#todoist-import-button").addEventListener("click", openTodoistFilePicker);
+document.querySelector("#change-todoist-file").addEventListener("click", openTodoistFilePicker);
 document.querySelector("#csv-paste-button").addEventListener("click", openCsvPasteDialog);
 document.querySelector("#parse-csv-paste").addEventListener("click", () => prepareCsvText(elements.csvPasteInput.value));
 elements.csvPasteInput.addEventListener("keydown", (event) => {
@@ -1953,6 +2036,9 @@ document.querySelector("#change-csv-file").addEventListener("click", () => {
 elements.csvFileInput.addEventListener("change", () => {
   const file = elements.csvFileInput.files?.[0];
   if (file) prepareCsvImport(file);
+});
+elements.todoistFileInput.addEventListener("change", () => {
+  if (elements.todoistFileInput.files?.length) prepareTodoistImport(elements.todoistFileInput.files);
 });
 elements.csvMappingGrid.addEventListener("change", (event) => {
   const select = event.target.closest("select[data-field]");
@@ -1982,6 +2068,26 @@ elements.csvImportForm.addEventListener("submit", (event) => {
   setView("all");
   const skippedTotal = merged.skipped + converted.skippedRows.length;
   showToast(`${merged.added}件を取り込みました${skippedTotal ? `（${skippedTotal}件スキップ）` : ""}`);
+});
+
+elements.todoistImportForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!state.todoistImport?.tasks.length) return;
+  const merged = mergeImportedTasks(state.tasks, state.todoistImport.tasks, {
+    mode: "append",
+    skipDuplicates: elements.todoistDuplicateMode.value === "skip",
+  });
+  state.tasks = merged.tasks;
+  state.projects = [...new Set([...state.projects, ...state.todoistImport.projects])];
+  state.tags = collectTags(state.tasks, state.tags);
+  saveTasks();
+  saveProjects();
+  saveTags();
+  elements.todoistImportDialog.close();
+  setView("all");
+  const warningText = state.todoistImport.warnings.length ? `・確認事項${state.todoistImport.warnings.length}件` : "";
+  showToast(`Todoistから${merged.added}件を移行しました${merged.skipped ? `（重複${merged.skipped}件をスキップ）` : ""}${warningText}`);
+  state.todoistImport = null;
 });
 
 document.querySelector("#csv-export-button").addEventListener("click", () => {
