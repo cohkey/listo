@@ -171,9 +171,9 @@ test("詳細追加は新規作成、既存詳細は編集として保存され�
 
 test("×とキャンセルは送信ではなく閉じる専用ボタンになっている", () => {
   const closeButtons = [...html.matchAll(/<button[^>]*data-close-dialog="([^"]+)"[^>]*>/g)];
-  assert.equal(closeButtons.length, 12);
+  assert.equal(closeButtons.length, 14);
   closeButtons.forEach((match) => assert.match(match[0], /type="button"/));
-  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
+  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "delete-project-dialog", "delete-project-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
   assert.doesNotMatch(html, /class="dialog-close" value="cancel"/);
   assert.match(script, /closeDialog\(document\.getElementById\(closeButton\.dataset\.closeDialog\)\)/);
 });

@@ -419,6 +419,21 @@
       </form>
     </dialog>
 
+    <dialog class="project-dialog" id="delete-project-dialog" aria-labelledby="delete-project-title" aria-describedby="delete-project-message delete-project-impact">
+      <form method="dialog" class="project-dialog-shell" id="delete-project-form">
+        <header class="dialog-header">
+          <h2 id="delete-project-title">プロジェクトを削除</h2>
+          <button class="dialog-close" type="button" data-close-dialog="delete-project-dialog" aria-label="閉じる">×</button>
+        </header>
+        <p id="delete-project-message"></p>
+        <p class="project-dialog-help" id="delete-project-impact"></p>
+        <footer class="dialog-footer project-dialog-footer">
+          <button class="secondary-button" id="cancel-project-delete" type="button" data-close-dialog="delete-project-dialog">キャンセル</button>
+          <button class="primary-button" type="submit">プロジェクトを削除する</button>
+        </footer>
+      </form>
+    </dialog>
+
     <dialog class="project-dialog" id="project-dialog">
       <form method="dialog" class="project-dialog-shell" id="project-form">
         <header class="dialog-header">

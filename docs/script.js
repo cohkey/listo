@@ -1057,12 +1057,20 @@ function toggleFavoriteProject(project) {
 }
 
 function deleteProject(project) {
-  if (project === "未分類") return;
+  if (project === "未分類" || !getProjects().includes(project)) return;
+  const dialog = document.querySelector("#delete-project-dialog");
   const taskCount = [...state.tasks, ...state.trash].filter((task) => task.project === project).length;
-  const message = taskCount
-    ? `「${project}」を削除しますか？\n${taskCount}件のタスクは「未分類」へ移動します。`
-    : `「${project}」を削除しますか？`;
-  if (!confirm(message)) return;
+  dialog.dataset.project = project;
+  document.querySelector("#delete-project-message").textContent = `「${project}」を削除しますか？`;
+  document.querySelector("#delete-project-impact").textContent = taskCount
+    ? `${taskCount}件のタスク（完了済み・ゴミ箱内を含む）は「未分類」へ移動します。タスク自体は削除されません。`
+    : "このプロジェクトにはタスクがありません。";
+  dialog.showModal();
+  document.querySelector("#cancel-project-delete").focus();
+}
+
+function executeProjectDeletion(project) {
+  if (project === "未分類" || !getProjects().includes(project)) return;
   const result = removeProject(state.tasks, state.projects, state.favoriteProjects, state.savedFilters, project);
   const trashResult = removeProject(state.trash, [], [], [], project);
   if (!result.removed) return;
@@ -1083,6 +1091,18 @@ function deleteProject(project) {
   const moved = result.moved + trashResult.moved;
   showToast(moved ? `プロジェクトを削除し、${moved}件を「未分類」へ移動しました` : "プロジェクトを削除しました", { showUndo: false });
 }
+
+document.querySelector("#delete-project-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const dialog = document.querySelector("#delete-project-dialog");
+  const project = dialog.dataset.project;
+  dialog.close();
+  executeProjectDeletion(project);
+});
+
+document.querySelector("#delete-project-dialog").addEventListener("close", (event) => {
+  delete event.target.dataset.project;
+});
 
 function renderTagManager() {
   state.tags = collectTags(state.tasks, state.tags);
