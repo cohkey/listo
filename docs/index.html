@@ -36,7 +36,7 @@
 
         <nav class="nav-list" aria-label="タスクの表示">
           <button class="nav-item is-active" data-view="today">
-            <span class="nav-icon nav-icon--sun">☀</span><span>今日</span>
+            <span class="nav-icon nav-icon--sun">☀</span><span>今日やる</span>
             <span class="nav-count" data-count="today">0</span>
           </button>
           <button class="nav-item" data-view="all">
@@ -109,6 +109,9 @@
           <span class="tip-spark">✦</span>
           <p><strong>小さく始めよう</strong><br />まず1つ終わらせると、勢いがつきます。</p>
         </div>
+        <button class="app-version-button" id="open-changelog" type="button" aria-haspopup="dialog">
+          <span>Listo</span><strong>v0.2.0</strong><small>更新履歴</small>
+        </button>
       </aside>
 
       <div class="sidebar-scrim" id="sidebar-scrim"></div>
@@ -131,8 +134,8 @@
           <div class="page-heading">
             <div>
               <p class="eyebrow" id="date-label"></p>
-              <h1 id="view-title">今日</h1>
-              <p class="page-subtitle" id="view-subtitle">今日に集中しましょう。</p>
+              <h1 id="view-title">今日やること</h1>
+              <p class="page-subtitle" id="view-subtitle">期限とは別に、自分で選んだタスクへ集中できます。</p>
             </div>
             <div class="progress-ring" id="progress-ring" aria-label="今日の達成率">
               <span id="progress-value">0%</span>
@@ -171,9 +174,9 @@
                 <label class="option-chip">
                   <span>▦</span>
                   <select id="due-select" aria-label="期限">
+                    <option value="none">期限なし</option>
                     <option value="today">今日</option>
                     <option value="tomorrow">明日</option>
-                    <option value="none">期限なし</option>
                   </select>
                 </label>
                 <label class="option-chip">
@@ -280,6 +283,7 @@
           </div>
           <div class="tag-row"></div>
         </div>
+        <button class="today-task-button" type="button" aria-label="今日やることに追加">☀<span>今日やる</span></button>
         <button class="task-timer-button" type="button" aria-label="時間計測を開始"><span class="timer-icon">▶</span><span class="timer-value">開始</span></button>
         <button class="priority-button" type="button" aria-label="優先度を切り替える">⚑</button>
         <button class="more-button" aria-label="タスクを編集">•••</button>
@@ -344,6 +348,10 @@
               <option value="weekly">毎週</option>
               <option value="monthly">毎月</option>
             </select>
+          </label>
+          <label class="today-field">
+            <input id="edit-planned-today" type="checkbox" />
+            <span><strong>今日やる</strong><small>期限に関係なく「今日やること」に表示</small></span>
           </label>
         </div>
 
@@ -429,9 +437,30 @@
         <p class="project-dialog-help" id="delete-project-impact"></p>
         <footer class="dialog-footer project-dialog-footer">
           <button class="secondary-button" id="cancel-project-delete" type="button" data-close-dialog="delete-project-dialog">キャンセル</button>
-          <button class="primary-button" type="submit">プロジェクトを削除する</button>
+          <button class="danger-confirm-button" type="submit">プロジェクトを削除する</button>
         </footer>
       </form>
+    </dialog>
+
+    <dialog class="project-dialog changelog-dialog" id="changelog-dialog" aria-labelledby="changelog-title">
+      <div class="project-dialog-shell changelog-shell">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">WHAT'S NEW</p>
+            <h2 id="changelog-title">Listoの更新履歴</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="changelog-dialog" aria-label="閉じる">×</button>
+        </header>
+        <div class="changelog-list">
+          <section class="changelog-entry is-latest"><header><strong>v0.2.0</strong><time>2026年10月</time></header><h3>今日やることを、自分で選べるように</h3><ul><li>期限と切り離した「今日やる」リストを追加</li><li>Todoistバックアップからの移行に対応</li><li>プロジェクト削除と確認画面を改善</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.5</strong></header><h3>Mac・iPhone同期</h3><ul><li>Supabase同期、ログイン維持、iPhone共有を追加</li><li>ダークテーマとアプリアイコンを刷新</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.4</strong></header><h3>予定と振り返り</h3><ul><li>期限サマリー、レポート、グラフを追加</li><li>カレンダーで完了状態を確認可能に</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.3</strong></header><h3>整理と工数管理</h3><ul><li>プロジェクト、タグ、サブタスク、時間計測を追加</li><li>お気に入りと保存フィルターに対応</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.2</strong></header><h3>表示とデータ移行</h3><ul><li>テーブル、カンバン、タイムライン、近日予定を追加</li><li>CSV・JSONの入出力に対応</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.0</strong></header><h3>Listo公開</h3><ul><li>リスト、優先度、期限、ローカル自動保存を実装</li></ul></section>
+        </div>
+        <footer class="dialog-footer project-dialog-footer"><span></span><button class="secondary-button" type="button" data-close-dialog="changelog-dialog">閉じる</button></footer>
+      </div>
     </dialog>
 
     <dialog class="project-dialog" id="project-dialog">

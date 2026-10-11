@@ -122,6 +122,11 @@ button { color: inherit; }
 .sidebar-tip { margin-top: auto; display: flex; gap: 10px; padding: 15px; border: 1px solid #ebe3d4; border-radius: 15px; background: #faf6ed; }
 .sidebar-tip p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
 .sidebar-tip strong { color: var(--text); font-size: 12px; }
+.app-version-button { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; width: 100%; margin-top: 8px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--muted); text-align: left; }
+.app-version-button span { color: var(--text); font-size: 10px; font-weight: 700; }
+.app-version-button strong { font-size: 9px; }
+.app-version-button small { grid-column: 1 / -1; font-size: 8px; }
+.app-version-button:hover { border-color: var(--blue); background: rgba(39,209,237,.07); color: var(--blue); }
 .tip-spark { color: var(--yellow); }
 
 .main-content { min-width: 0; }
@@ -249,6 +254,9 @@ h1 { margin: 0; font-size: clamp(34px, 4vw, 48px); line-height: 1.1; letter-spac
 .repeat-label::before { content: "↻ "; font-size: 1.1em; }
 .repeat-label[hidden], .effort-label[hidden], .subtask-label[hidden] { display: none !important; }
 .priority-button, .more-button { flex: 0 0 auto; display: grid; place-items: center; border: 0; background: transparent; color: #b5b0a6; }
+.today-task-button { min-width: 68px; height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 9px; font-weight: 700; }
+.today-task-button:hover { border-color: #e9b64e; color: #a96f00; }
+.today-task-button.is-planned { border-color: #edc66b; background: #fff3ca; color: #8a5b00; }
 .priority-button { width: 30px; height: 30px; border-radius: 8px; font-size: 16px; }
 .priority-button.is-high { background: #fee9e5; color: var(--accent); }
 .task-timer-button { min-width: 52px; height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 9px; font-weight: 700; }
@@ -397,6 +405,8 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
   .priority-button { display: none; }
   .task-timer-button { min-width: 30px; padding-inline: 6px; }
   .task-timer-button .timer-value { display: none; }
+  .today-task-button { min-width: 30px; padding-inline: 6px; }
+  .today-task-button span { display: none; }
   .status-chart { align-items: stretch; flex-direction: column; gap: 18px; }
   .report-legend { width: 100%; }
   .completion-chart { gap: 5px; }
@@ -484,6 +494,10 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
 .table-subtask-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
 .table-detail-button { height: 30px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 9px; font-weight: 700; white-space: nowrap; }
 .table-detail-button:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.table-today-button { min-width: 68px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.table-today-button.is-planned { border-color: #edc66b; background: #fff3ca; color: #8a5b00; }
+.kanban-today-button { padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); font-size: 8px; font-weight: 700; }
+.kanban-today-button.is-planned { border-color: #edc66b; background: #fff3ca; color: #8a5b00; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 .sidebar, .table-scroll, .kanban-board, .timeline-view, .upcoming-calendar, .dialog-shell, .import-dialog-shell, .tag-manager-list, .csv-preview-scroll {
@@ -605,6 +619,11 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
 .effort-heading > span, .subtask-heading > span { color: var(--muted); font-size: 9px; }
 .section-icon { color: var(--accent); font-size: 14px; }
 .field-grid--effort { margin-top: 12px; }
+.today-field { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-strong); cursor: pointer; }
+.today-field input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: #e8ad2f; }
+.today-field span, .today-field strong, .today-field small { display: block; }
+.today-field strong { color: var(--text); font-size: 11px; }
+.today-field small { margin-top: 3px; color: var(--muted); font-size: 8px; line-height: 1.4; }
 .timer-panel { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding: 11px 12px; border-radius: 11px; background: var(--surface-strong); }
 .timer-panel strong, .timer-panel small { display: block; }
 .timer-panel strong { font-size: 19px; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
@@ -644,6 +663,18 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
 .project-dialog-help { margin: 10px 0 0; color: var(--muted); font-size: 10px; }
 .filter-field-grid { margin-top: 16px; }
 .project-dialog-footer { margin-top: 24px; }
+.danger-confirm-button { min-height: 40px; padding: 0 16px; border: 1px solid #ff7b6d; border-radius: 10px; background: linear-gradient(135deg, #ff6257, #df3345); color: #fff; font-size: 10px; font-weight: 800; box-shadow: 0 8px 20px rgba(223,51,69,.24); }
+.danger-confirm-button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.changelog-dialog { width: min(560px, calc(100% - 30px)); }
+.changelog-shell { max-height: calc(100vh - 32px); overflow-y: auto; }
+.changelog-list { display: grid; gap: 10px; }
+.changelog-entry { padding: 14px 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-strong); }
+.changelog-entry.is-latest { border-color: rgba(39,209,237,.55); background: linear-gradient(135deg, rgba(39,209,237,.09), rgba(76,63,255,.08)); }
+.changelog-entry header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.changelog-entry header strong { color: var(--blue); font-size: 10px; }
+.changelog-entry time { color: var(--muted); font-size: 8px; }
+.changelog-entry h3 { margin: 7px 0 5px; font-size: 12px; }
+.changelog-entry ul { display: grid; gap: 3px; margin: 0; padding-left: 17px; color: var(--muted); font-size: 9px; line-height: 1.55; }
 .sync-dialog { width: min(560px, calc(100% - 30px)); }
 .sync-dialog-shell { max-height: calc(100vh - 32px); overflow-y: auto; }
 .sync-status-card { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #dce3ea; border-radius: 13px; background: #f5f9fc; }
@@ -767,6 +798,10 @@ body.is-dark .calendar-day-heading { border-color: #3b3c37; }
 body.is-dark .calendar-actions, body.is-dark .calendar-task, body.is-dark .timer-panel { border-color: #41423d; background: #30312e !important; }
 body.is-dark .calendar-actions button { border-color: #41423d; }
 body.is-dark .task-timer-button { border-color: #464741; }
+body.is-dark .today-task-button, body.is-dark .table-today-button, body.is-dark .kanban-today-button, body.is-dark .app-version-button { border-color: #2b4669; }
+body.is-dark .today-task-button.is-planned, body.is-dark .table-today-button.is-planned, body.is-dark .kanban-today-button.is-planned { border-color: #8d6d32; background: rgba(232,173,47,.14); color: #f3ca70; }
+body.is-dark .today-field, body.is-dark .changelog-entry { border-color: #2b4669; background: #102239; }
+body.is-dark .changelog-entry.is-latest { border-color: rgba(39,209,237,.5); background: linear-gradient(135deg, rgba(39,209,237,.12), rgba(76,63,255,.14)); }
 body.is-dark .saved-filter-row.is-active { background: #30312d; }
 body.is-dark .trash-actions button { border-color: #464741; }
 body.is-dark .project-add-button { border-color: #464741; color: #b7b3a9; }

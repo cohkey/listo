@@ -51,7 +51,7 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v5/);
+  assert.match(serviceWorker, /listo-shell-v6/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
@@ -171,11 +171,35 @@ test("詳細追加は新規作成、既存詳細は編集として保存され�
 
 test("×とキャンセルは送信ではなく閉じる専用ボタンになっている", () => {
   const closeButtons = [...html.matchAll(/<button[^>]*data-close-dialog="([^"]+)"[^>]*>/g)];
-  assert.equal(closeButtons.length, 14);
+  assert.equal(closeButtons.length, 16);
   closeButtons.forEach((match) => assert.match(match[0], /type="button"/));
-  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "delete-project-dialog", "delete-project-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
+  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["changelog-dialog", "changelog-dialog", "csv-import-dialog", "csv-import-dialog", "delete-project-dialog", "delete-project-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
   assert.doesNotMatch(html, /class="dialog-close" value="cancel"/);
   assert.match(script, /closeDialog\(document\.getElementById\(closeButton\.dataset\.closeDialog\)\)/);
+});
+
+test("今日タブは期限ではなく利用者が選んだタスクを表示する", () => {
+  assert.match(html, /data-view="today"[\s\S]*今日やる/);
+  assert.match(html, /class="today-task-button"/);
+  assert.match(html, /id="edit-planned-today"/);
+  assert.match(script, /state\.view === "today" && \(!task\.plannedToday/);
+  assert.match(script, /task\.plannedToday = !task\.plannedToday/);
+  assert.match(script, /plannedToday: state\.view === "today"/);
+  assert.doesNotMatch(script, /state\.view === "today" && \(!task\.due/);
+});
+
+test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
+  assert.match(html, /id="open-changelog"/);
+  assert.match(html, /id="changelog-dialog"/);
+  assert.match(html, /v0\.2\.0/);
+  assert.match(html, /Listoの更新履歴/);
+  assert.match(script, /const APP_VERSION = "0\.2\.0"/);
+  assert.match(css, /\.changelog-entry/);
+});
+
+test("プロジェクト削除の確定ボタンは危険操作として明瞭に表示する", () => {
+  assert.match(html, /class="danger-confirm-button"[^>]*>プロジェクトを削除する/);
+  assert.match(css, /\.danger-confirm-button \{[^}]*background: linear-gradient/);
 });
 
 test("詳細追加ボタンは補助リンクではなく十分な大きさの選択肢になっている", () => {
