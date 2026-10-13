@@ -249,6 +249,41 @@
     return { name, projects: added ? [...projects, name] : [...projects], added };
   }
 
+  function renameProject(tasks, projects, favoriteProjects, savedFilters, rawOldName, rawNewName) {
+    const oldName = normalizeProjectName(rawOldName);
+    const newName = normalizeProjectName(rawNewName);
+    const unchanged = {
+      changed: false,
+      affected: 0,
+      tasks: [...tasks],
+      projects: [...projects],
+      favoriteProjects: [...favoriteProjects],
+      savedFilters: [...savedFilters],
+    };
+    if (!oldName || !newName) return { ...unchanged, reason: "invalid" };
+    if (oldName === "未分類") return { ...unchanged, reason: "reserved" };
+    if (oldName === newName) return { ...unchanged, reason: "same" };
+    if (!projects.includes(oldName) && !tasks.some((task) => task.project === oldName)) return { ...unchanged, reason: "missing" };
+    if (projects.includes(newName) || tasks.some((task) => task.project === newName)) return { ...unchanged, reason: "duplicate" };
+    let affected = 0;
+    const nextTasks = tasks.map((task) => {
+      if (task.project !== oldName) return task;
+      affected += 1;
+      return { ...task, project: newName };
+    });
+    return {
+      changed: true,
+      affected,
+      reason: null,
+      tasks: nextTasks,
+      projects: [...new Set(projects.includes(oldName)
+        ? projects.map((project) => project === oldName ? newName : project)
+        : [...projects, newName])],
+      favoriteProjects: [...new Set(favoriteProjects.map((project) => project === oldName ? newName : project))],
+      savedFilters: savedFilters.map((filter) => filter.project === oldName ? { ...filter, project: newName } : filter),
+    };
+  }
+
   function removeProject(tasks, projects, favoriteProjects, savedFilters, rawName) {
     const name = normalizeProjectName(rawName);
     if (!name || name === "未分類") return { removed: false, moved: 0, tasks: [...tasks], projects: [...projects], favoriteProjects: [...favoriteProjects], savedFilters: [...savedFilters] };
@@ -521,7 +556,7 @@
 
   return {
     makeId, normalizeTask, nextRecurringDue, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-    compareBy, sortTasks, groupTasksByProject, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+    compareBy, sortTasks, groupTasksByProject, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
     CSV_FIELDS, parseCSV, autoMapHeaders, normalizeImportDate, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
   };
 });

@@ -51,7 +51,7 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v6/);
+  assert.match(serviceWorker, /listo-shell-v7/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
@@ -141,6 +141,14 @@ test("サイドバーにプロジェクト追加ボタンと追加画面があ�
   assert.match(script, /PROJECTS_KEY/);
 });
 
+test("サイドバーからプロジェクト名を変更できる", () => {
+  assert.match(script, /dataset\.editProject = project/);
+  assert.match(script, /function openProjectDialog\(project = null\)/);
+  assert.match(script, /renameProject\(state\.tasks, state\.projects, state\.favoriteProjects, state\.savedFilters/);
+  assert.match(html, /id="project-original-name"/);
+  assert.match(html, /id="save-project"/);
+});
+
 test("詳細画面で優先度を選択して保存できる", () => {
   assert.match(html, /<select id="edit-priority"/);
   assert.match(script, /elements\.editPriority\.value = task\.priority/);
@@ -191,9 +199,9 @@ test("今日タブは期限ではなく利用者が選んだタスクを表示�
 test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
   assert.match(html, /id="open-changelog"/);
   assert.match(html, /id="changelog-dialog"/);
-  assert.match(html, /v0\.2\.0/);
+  assert.match(html, /v0\.2\.1/);
   assert.match(html, /Listoの更新履歴/);
-  assert.match(script, /const APP_VERSION = "0\.2\.0"/);
+  assert.match(script, /const APP_VERSION = "0\.2\.1"/);
   assert.match(css, /\.changelog-entry/);
 });
 

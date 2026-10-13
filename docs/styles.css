@@ -101,11 +101,12 @@ button { color: inherit; }
 .project-link { min-width: 0; flex: 1; }
 .project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-favorite-marker { width: 9px; flex: 0 0 auto; color: var(--yellow); font-size: 11px; }
-.project-favorite-button, .project-remove-button { width: 28px; height: 28px; flex: 0 0 auto; border: 0; border-radius: 8px; background: transparent; color: #aaa69d; opacity: 0; }
-.project-row:hover .project-favorite-button, .project-row:hover .project-remove-button, .project-row.is-active .project-remove-button, .project-favorite-button:focus, .project-remove-button:focus, .project-favorite-button.is-favorite { opacity: 1; }
+.project-favorite-button, .project-edit-button, .project-remove-button { width: 28px; height: 28px; flex: 0 0 auto; border: 0; border-radius: 8px; background: transparent; color: #aaa69d; opacity: 0; }
+.project-row:hover .project-favorite-button, .project-row:hover .project-edit-button, .project-row:hover .project-remove-button, .project-row.is-active .project-edit-button, .project-row.is-active .project-remove-button, .project-favorite-button:focus, .project-edit-button:focus, .project-remove-button:focus, .project-favorite-button.is-favorite { opacity: 1; }
 .project-favorite-button:hover, .project-favorite-button.is-favorite { background: #fff2d8; color: #a66c00; }
+.project-edit-button:hover { background: #e5f0fb; color: var(--blue); }
 .project-remove-button:hover { background: var(--accent-soft); color: var(--accent); }
-@media (hover: none) { .project-favorite-button, .project-remove-button { opacity: 1; } }
+@media (hover: none) { .project-favorite-button, .project-edit-button, .project-remove-button { opacity: 1; } }
 .saved-filter-row { display: flex; align-items: center; gap: 2px; border-radius: 12px; }
 .saved-filter-row.is-active { background: var(--surface-strong); box-shadow: 0 8px 24px rgba(57,48,33,.06); }
 .saved-filter-button { min-width: 0; flex: 1; }

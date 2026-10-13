@@ -110,7 +110,7 @@
           <p><strong>小さく始めよう</strong><br />まず1つ終わらせると、勢いがつきます。</p>
         </div>
         <button class="app-version-button" id="open-changelog" type="button" aria-haspopup="dialog">
-          <span>Listo</span><strong>v0.2.0</strong><small>更新履歴</small>
+          <span>Listo</span><strong>v0.2.1</strong><small>更新履歴</small>
         </button>
       </aside>
 
@@ -452,7 +452,8 @@
           <button class="dialog-close" type="button" data-close-dialog="changelog-dialog" aria-label="閉じる">×</button>
         </header>
         <div class="changelog-list">
-          <section class="changelog-entry is-latest"><header><strong>v0.2.0</strong><time>2026年10月</time></header><h3>今日やることを、自分で選べるように</h3><ul><li>期限と切り離した「今日やる」リストを追加</li><li>Todoistバックアップからの移行に対応</li><li>プロジェクト削除と確認画面を改善</li></ul></section>
+          <section class="changelog-entry is-latest"><header><strong>v0.2.1</strong><time>2026年10月</time></header><h3>プロジェクト名をあとから変更</h3><ul><li>サイドバーの鉛筆ボタンから名称を編集可能に</li><li>タスク、お気に入り、保存フィルターへ一括反映</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.2.0</strong></header><h3>今日やることを、自分で選べるように</h3><ul><li>期限と切り離した「今日やる」リストを追加</li><li>Todoistバックアップからの移行に対応</li><li>プロジェクト削除と確認画面を改善</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.1.5</strong></header><h3>Mac・iPhone同期</h3><ul><li>Supabase同期、ログイン維持、iPhone共有を追加</li><li>ダークテーマとアプリアイコンを刷新</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.1.4</strong></header><h3>予定と振り返り</h3><ul><li>期限サマリー、レポート、グラフを追加</li><li>カレンダーで完了状態を確認可能に</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.1.3</strong></header><h3>整理と工数管理</h3><ul><li>プロジェクト、タグ、サブタスク、時間計測を追加</li><li>お気に入りと保存フィルターに対応</li></ul></section>
@@ -467,22 +468,23 @@
       <form method="dialog" class="project-dialog-shell" id="project-form">
         <header class="dialog-header">
           <div>
-            <p class="dialog-eyebrow">NEW PROJECT</p>
-            <h2>プロジェクトを追加</h2>
+            <p class="dialog-eyebrow" id="project-dialog-eyebrow">NEW PROJECT</p>
+            <h2 id="project-dialog-title">プロジェクトを追加</h2>
           </div>
           <button class="dialog-close" type="button" data-close-dialog="project-dialog" aria-label="閉じる">×</button>
         </header>
         <label class="field field--wide">
           <span>プロジェクト名</span>
+          <input id="project-original-name" type="hidden" />
           <input id="new-project-name" maxlength="30" autocomplete="off" placeholder="例：旅行の準備" required />
         </label>
         <label class="favorite-project-option"><input id="new-project-favorite" type="checkbox" /> <span>お気に入りに追加して上部へ表示</span></label>
-        <p class="project-dialog-help">追加後、そのプロジェクトを開いた状態になります。</p>
+        <p class="project-dialog-help" id="project-dialog-help">追加後、そのプロジェクトを開いた状態になります。</p>
         <footer class="dialog-footer project-dialog-footer">
           <span></span>
           <div>
             <button class="secondary-button" type="button" data-close-dialog="project-dialog">キャンセル</button>
-            <button class="save-button" type="submit" value="default">追加する</button>
+            <button class="save-button" id="save-project" type="submit" value="default">追加する</button>
           </div>
         </footer>
       </form>

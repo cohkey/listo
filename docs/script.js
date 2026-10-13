@@ -9,10 +9,10 @@ const FILTERS_KEY = "tempo-filters-v1";
 const GROUP_KEY = "tempo-group-by";
 const FAVORITES_KEY = "tempo-favorite-projects-v1";
 const TAGS_KEY = "tempo-tags-v1";
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.2.1";
 const {
   makeId, normalizeTask, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-  sortTasks, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+  sortTasks, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
   CSV_FIELDS, parseCSV, autoMapHeaders, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
 } = TempoCore;
 
@@ -167,6 +167,11 @@ const elements = {
   toggleTaskTimer: document.querySelector("#toggle-task-timer"),
   projectDialog: document.querySelector("#project-dialog"),
   projectForm: document.querySelector("#project-form"),
+  projectOriginalName: document.querySelector("#project-original-name"),
+  projectDialogEyebrow: document.querySelector("#project-dialog-eyebrow"),
+  projectDialogTitle: document.querySelector("#project-dialog-title"),
+  projectDialogHelp: document.querySelector("#project-dialog-help"),
+  saveProjectButton: document.querySelector("#save-project"),
   newProjectName: document.querySelector("#new-project-name"),
   newProjectFavorite: document.querySelector("#new-project-favorite"),
   tagDialog: document.querySelector("#tag-dialog"),
@@ -1037,13 +1042,19 @@ function createProjectNavigationRow(project, { favoriteSection = false, index = 
   favorite.setAttribute("aria-label", state.favoriteProjects.includes(project) ? `「${project}」をお気に入りから外す` : `「${project}」をお気に入りに追加`);
   row.append(button, favorite);
   if (!favoriteSection && project !== "未分類") {
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "project-edit-button";
+    edit.dataset.editProject = project;
+    edit.textContent = "✎";
+    edit.setAttribute("aria-label", `「${project}」プロジェクト名を変更`);
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "project-remove-button";
     remove.dataset.removeProject = project;
     remove.textContent = "×";
     remove.setAttribute("aria-label", `「${project}」プロジェクトを削除`);
-    row.append(remove);
+    row.append(edit, remove);
   }
   return row;
 }
@@ -1072,6 +1083,25 @@ function toggleFavoriteProject(project) {
   saveFavoriteProjects();
   render();
   showToast(state.favoriteProjects.includes(project) ? `「${project}」をお気に入りに追加しました` : `「${project}」をお気に入りから外しました`, { showUndo: false });
+}
+
+function openProjectDialog(project = null) {
+  const editing = Boolean(project);
+  elements.projectOriginalName.value = project || "";
+  elements.projectDialogEyebrow.textContent = editing ? "EDIT PROJECT" : "NEW PROJECT";
+  elements.projectDialogTitle.textContent = editing ? "プロジェクト名を変更" : "プロジェクトを追加";
+  elements.projectDialogHelp.textContent = editing
+    ? "名称はタスク、お気に入り、保存フィルターにも反映されます。"
+    : "追加後、そのプロジェクトを開いた状態になります。";
+  elements.saveProjectButton.textContent = editing ? "変更を保存" : "追加する";
+  elements.newProjectName.value = project || "";
+  elements.newProjectName.setCustomValidity("");
+  elements.newProjectFavorite.checked = editing ? state.favoriteProjects.includes(project) : false;
+  elements.projectDialog.showModal();
+  requestAnimationFrame(() => {
+    elements.newProjectName.focus();
+    if (editing) elements.newProjectName.select();
+  });
 }
 
 function deleteProject(project) {
@@ -1879,6 +1909,8 @@ elements.board.addEventListener("drop", (event) => {
 
 document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => setView(item.dataset.view)));
 function handleProjectNavigationClick(event) {
+  const editProjectName = event.target.closest("[data-edit-project]")?.dataset.editProject;
+  if (editProjectName) return openProjectDialog(editProjectName);
   const removeProjectName = event.target.closest("[data-remove-project]")?.dataset.removeProject;
   if (removeProjectName) return deleteProject(removeProjectName);
   const favoriteProject = event.target.closest("[data-favorite-project]")?.dataset.favoriteProject;
@@ -1976,10 +2008,7 @@ elements.editForm.addEventListener("submit", (event) => {
 });
 
 document.querySelector("#open-project-dialog").addEventListener("click", () => {
-  elements.newProjectName.value = "";
-  elements.newProjectFavorite.checked = false;
-  elements.projectDialog.showModal();
-  requestAnimationFrame(() => elements.newProjectName.focus());
+  openProjectDialog();
 });
 
 document.querySelector("#open-changelog").addEventListener("click", () => {
@@ -2055,6 +2084,41 @@ elements.filterForm.addEventListener("submit", (event) => {
 
 elements.projectForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const originalName = elements.projectOriginalName.value;
+  if (originalName) {
+    const newName = normalizeProjectName(elements.newProjectName.value);
+    const result = renameProject(state.tasks, state.projects, state.favoriteProjects, state.savedFilters, originalName, elements.newProjectName.value);
+    if (!result.changed) {
+      if (result.reason === "same") {
+        elements.projectDialog.close();
+        return;
+      }
+      const message = result.reason === "duplicate" ? "同じ名前のプロジェクトがすでにあります。" : "この名前には変更できません。";
+      elements.newProjectName.setCustomValidity(message);
+      elements.newProjectName.reportValidity();
+      return;
+    }
+    const trashResult = renameProject(state.trash, [originalName], [], [], originalName, newName);
+    state.tasks = result.tasks;
+    state.trash = trashResult.tasks;
+    state.projects = result.projects;
+    state.favoriteProjects = result.favoriteProjects;
+    state.savedFilters = result.savedFilters;
+    if (state.activeProject === originalName) state.activeProject = newName;
+    if (elements.newProjectFavorite.checked && !state.favoriteProjects.includes(newName)) {
+      state.favoriteProjects.push(newName);
+    } else if (!elements.newProjectFavorite.checked) {
+      state.favoriteProjects = state.favoriteProjects.filter((project) => project !== newName);
+    }
+    saveTasks({ recordUndo: false });
+    saveProjects();
+    saveFavoriteProjects();
+    saveFilters();
+    elements.projectDialog.close();
+    render();
+    showToast(`${result.affected + trashResult.affected}件のタスクとプロジェクト名を更新しました`, { showUndo: false });
+    return;
+  }
   const result = addProject(state.projects, elements.newProjectName.value);
   if (!result.name) return;
   state.projects = result.projects;
@@ -2069,6 +2133,8 @@ elements.projectForm.addEventListener("submit", (event) => {
   setView("all", result.name);
   showToast(result.added ? "プロジェクトを追加しました" : "既存のプロジェクトを開きました");
 });
+
+elements.newProjectName.addEventListener("input", () => elements.newProjectName.setCustomValidity(""));
 
 elements.newProjectName.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.isComposing) return;

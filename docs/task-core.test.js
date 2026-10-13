@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   normalizeTask, nextRecurringDue, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-  sortTasks, groupTasksByProject, groupTasks, resolveProject, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+  sortTasks, groupTasksByProject, groupTasks, resolveProject, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
   parseCSV, autoMapHeaders, normalizeImportDate, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
 } = require("./task-core.js");
 
@@ -216,6 +216,25 @@ test("空のプロジェクトを追加して重複なく保持できる", () =>
   const duplicate = addProject(created.projects, "引っ越し 準備");
   assert.equal(duplicate.added, false);
   assert.deepEqual(duplicate.projects, created.projects);
+});
+
+test("プロジェクト名の変更をタスク・お気に入り・保存フィルターへ一括反映する", () => {
+  const tasks = [makeTask({ id: "work", project: "仕事" }), makeTask({ id: "home", project: "個人" })];
+  const result = renameProject(tasks, ["未分類", "仕事", "個人"], ["仕事"], [{ id: "f1", project: "仕事" }], " 仕事 ", " 本業 ");
+  assert.equal(result.changed, true);
+  assert.equal(result.affected, 1);
+  assert.equal(result.tasks[0].project, "本業");
+  assert.deepEqual(result.projects, ["未分類", "本業", "個人"]);
+  assert.deepEqual(result.favoriteProjects, ["本業"]);
+  assert.equal(result.savedFilters[0].project, "本業");
+});
+
+test("プロジェクト名は重複・未分類・空文字へ変更できない", () => {
+  const args = [[], ["未分類", "仕事", "個人"], [], []];
+  assert.equal(renameProject(...args, "仕事", "個人").reason, "duplicate");
+  assert.equal(renameProject(...args, "未分類", "その他").reason, "reserved");
+  assert.equal(renameProject(...args, "仕事", " ").reason, "invalid");
+  assert.equal(renameProject(...args, "仕事", "仕事").reason, "same");
 });
 
 test("プロジェクト削除でタスクを未分類へ移し関連設定も整理する", () => {
