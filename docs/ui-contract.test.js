@@ -51,7 +51,7 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v7/);
+  assert.match(serviceWorker, /listo-shell-v8/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
@@ -87,6 +87,9 @@ test("アカウント登録の反応をその場に表示しログインを自�
   assert.match(syncScript, /Core\.createSession\(response, readSession\(\)\)/);
   assert.match(syncScript, /Core\.shouldRefreshSession\(session, Date\.now\(\), SESSION_REFRESH_MARGIN\)/);
   assert.match(syncScript, /restorePersistedSession\(\)/);
+  assert.match(syncScript, /sessionRefreshPromise/);
+  assert.match(syncScript, /addEventListener\("pageshow", resumeAutomaticSync\)/);
+  assert.match(syncScript, /addEventListener\("visibilitychange"/);
   assert.match(syncScript, /busyLabel: "作成中…"/);
   assert.match(syncScript, /redirect_to=/);
   assert.match(syncScript, /publicAppUrl\(\)/);
@@ -199,9 +202,9 @@ test("今日タブは期限ではなく利用者が選んだタスクを表示�
 test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
   assert.match(html, /id="open-changelog"/);
   assert.match(html, /id="changelog-dialog"/);
-  assert.match(html, /v0\.2\.1/);
+  assert.match(html, /v0\.2\.2/);
   assert.match(html, /Listoの更新履歴/);
-  assert.match(script, /const APP_VERSION = "0\.2\.1"/);
+  assert.match(script, /const APP_VERSION = "0\.2\.2"/);
   assert.match(css, /\.changelog-entry/);
 });
 
