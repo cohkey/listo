@@ -9,7 +9,7 @@ const FILTERS_KEY = "tempo-filters-v1";
 const GROUP_KEY = "tempo-group-by";
 const FAVORITES_KEY = "tempo-favorite-projects-v1";
 const TAGS_KEY = "tempo-tags-v1";
-const APP_VERSION = "0.2.3";
+const APP_VERSION = "0.2.4";
 const {
   makeId, normalizeTask, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
   sortTasks, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
@@ -2011,9 +2011,9 @@ document.querySelector("#open-project-dialog").addEventListener("click", () => {
   openProjectDialog();
 });
 
-document.querySelector("#open-changelog").addEventListener("click", () => {
+document.querySelectorAll("#open-changelog, #open-mobile-changelog").forEach((button) => button.addEventListener("click", () => {
   document.querySelector("#changelog-dialog").showModal();
-});
+}));
 
 document.querySelector("#open-tag-dialog").addEventListener("click", openTagManager);
 document.querySelector("#open-tag-manager").addEventListener("click", openTagManager);
@@ -2320,6 +2320,8 @@ document.addEventListener("keydown", (event) => {
 
 if (localStorage.getItem(THEME_KEY) !== "light") document.body.classList.add("is-dark");
 document.getElementById("open-changelog").querySelector("strong").textContent = `v${APP_VERSION}`;
+document.getElementById("open-mobile-changelog").textContent = `v${APP_VERSION}`;
+document.getElementById("open-mobile-changelog").setAttribute("aria-label", `現在のバージョン v${APP_VERSION}。更新履歴を開く`);
 elements.dateLabel.textContent = new Intl.DateTimeFormat("ja-JP", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 window.TempoAppSyncAdapter = { getSnapshot: createSyncSnapshot, applySnapshot: applySyncSnapshot };
 saveTasks({ recordUndo: false, sync: false });
