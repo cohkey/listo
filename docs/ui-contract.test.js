@@ -30,8 +30,8 @@ test("Web版を維持したままMac・iPhone向け同期画面を追加する",
   assert.match(html, /id="sync-sign-in"/);
   assert.match(html, /id="sync-share-iphone"/);
   assert.match(html, /id="sync-share-link"/);
-  assert.match(html, /<script src="sync-core\.js"><\/script>/);
-  assert.match(html, /<script src="sync\.js"><\/script>/);
+  assert.match(html, /<script src="sync-core\.js\?v=0\.2\.4"><\/script>/);
+  assert.match(html, /<script src="sync\.js\?v=0\.2\.4"><\/script>/);
   assert.match(script, /window\.TempoAppSyncAdapter = \{ getSnapshot: createSyncSnapshot, applySnapshot: applySyncSnapshot \}/);
   assert.match(syncScript, /tempo_snapshots/);
   assert.match(syncScript, /markLocalChange/);
@@ -49,9 +49,9 @@ test("Web版を維持したままMac・iPhone向け同期画面を追加する",
 test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-capable/);
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
-  assert.match(html, /<script src="pwa\.js"><\/script>/);
-  assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v9/);
+  assert.match(html, /<script src="pwa\.js\?v=0\.2\.4"><\/script>/);
+  assert.match(pwaScript, /serviceWorker\.register\(SERVICE_WORKER_URL, \{ updateViaCache: "none" \}\)/);
+  assert.match(serviceWorker, /listo-shell-v10/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
@@ -74,7 +74,7 @@ test("TodoistのZIPまたは複数CSVを専用画面から安全に移行でき�
   assert.match(html, /id="todoist-import-dialog"/);
   assert.match(html, /id="todoist-preview-body"/);
   assert.match(html, /id="todoist-warning-list"/);
-  assert.match(html, /<script src="todoist-import\.js"><\/script>/);
+  assert.match(html, /<script src="todoist-import\.js\?v=0\.2\.4"><\/script>/);
   assert.match(script, /ListoTodoist\.readSelectedFiles/);
   assert.match(script, /ListoTodoist\.convertTodoistCSV/);
   assert.match(todoistScript, /TYPE/);
@@ -214,8 +214,26 @@ test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
   assert.match(html, /id="changelog-dialog"/);
   assert.match(html, /v0\.2\.2/);
   assert.match(html, /Listoの更新履歴/);
-  assert.match(script, /const APP_VERSION = "0\.2\.3"/);
+  assert.match(script, /const APP_VERSION = "0\.2\.4"/);
   assert.match(css, /\.changelog-entry/);
+});
+
+test("通常URLのまま公開版を自動更新しスマホ上部でバージョンを確認できる", () => {
+  assert.match(html, /name="application-version" content="0\.2\.4"/);
+  assert.match(html, /href="styles\.css\?v=0\.2\.4"/);
+  assert.match(html, /id="open-mobile-changelog"[^>]*>v0\.2\.4<\/button>/);
+  assert.match(css, /\.mobile-version-button \{ display: none;/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.mobile-version-button \{ display: inline-flex;/);
+  assert.match(pwaScript, /const SERVICE_WORKER_URL = "\.\/service-worker\.js\?v=0\.2\.4"/);
+  assert.match(pwaScript, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
+  assert.match(pwaScript, /location\.reload\(\)/);
+  assert.match(pwaScript, /window\.addEventListener\("pageshow", checkForUpdate\)/);
+  assert.match(pwaScript, /document\.addEventListener\("visibilitychange"/);
+  assert.match(pwaScript, /window\.addEventListener\("online", checkForUpdate\)/);
+  assert.match(serviceWorker, /new Request\(event\.request, \{ cache: "no-cache" \}\)/);
+  assert.match(serviceWorker, /event\.data\?\.type === "SKIP_WAITING"/);
+  assert.match(serviceWorker, /self\.clients\.matchAll\(\{ type: "window" \}\)/);
+  assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
 });
 
 test("プロジェクト削除の確定ボタンは危険操作として明瞭に表示する", () => {
@@ -512,7 +530,7 @@ test("ダークモードにタスクとタグ専用の配色がある", () => {
 });
 
 test("共通ロジックをアプリより先に読み込む", () => {
-  assert.ok(html.indexOf('src="task-core.js"') < html.indexOf('src="script.js"'));
+  assert.ok(html.indexOf('src="task-core.js?v=0.2.4"') < html.indexOf('src="script.js?v=0.2.4"'));
 });
 
 test("Windows向けのCtrl K検索ショートカットを表示・処理する", () => {

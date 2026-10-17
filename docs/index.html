@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Listo" />
+    <meta name="application-version" content="0.2.4" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
     <link rel="manifest" href="manifest.webmanifest" />
@@ -21,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=0.2.4" />
   </head>
   <body>
     <div class="app-shell">
@@ -110,7 +111,7 @@
           <p><strong>小さく始めよう</strong><br />まず1つ終わらせると、勢いがつきます。</p>
         </div>
         <button class="app-version-button" id="open-changelog" type="button" aria-haspopup="dialog">
-          <span>Listo</span><strong>v0.2.3</strong><small>更新履歴</small>
+          <span>Listo</span><strong>v0.2.4</strong><small>更新履歴</small>
         </button>
       </aside>
 
@@ -125,6 +126,7 @@
             <kbd>Ctrl K</kbd>
           </div>
           <div class="topbar-actions">
+            <button class="mobile-version-button" id="open-mobile-changelog" type="button" aria-label="現在のバージョン v0.2.4。更新履歴を開く">v0.2.4</button>
             <button class="icon-button" id="theme-toggle" aria-label="配色を切り替える">◐</button>
             <div class="avatar" aria-label="ユーザー">YOU</div>
           </div>
@@ -452,7 +454,8 @@
           <button class="dialog-close" type="button" data-close-dialog="changelog-dialog" aria-label="閉じる">×</button>
         </header>
         <div class="changelog-list">
-          <section class="changelog-entry is-latest"><header><strong>v0.2.3</strong><time>2026年10月</time></header><h3>iPhone表示を最適化</h3><ul><li>タスク名と属性が画面内で自然に折り返すカード配置へ変更</li><li>Dynamic Islandとホーム画面版の安全領域に対応</li></ul></section>
+          <section class="changelog-entry is-latest"><header><strong>v0.2.4</strong><time>2026年10月</time></header><h3>通常URLから自動更新</h3><ul><li>起動・画面復帰時に新しい公開版を確認して自動適用</li><li>スマホ上部に現在のバージョンを表示</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.2.3</strong><time>2026年10月</time></header><h3>iPhone表示を最適化</h3><ul><li>タスク名と属性が画面内で自然に折り返すカード配置へ変更</li><li>Dynamic Islandとホーム画面版の安全領域に対応</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.2.2</strong><time>2026年10月</time></header><h3>iPhoneのログインと同期を自動維持</h3><ul><li>保存済みログインを起動時に自動復元</li><li>バックグラウンドから戻った時にも即時同期</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.2.1</strong></header><h3>プロジェクト名をあとから変更</h3><ul><li>サイドバーの鉛筆ボタンから名称を編集可能に</li><li>タスク、お気に入り、保存フィルターへ一括反映</li></ul></section>
           <section class="changelog-entry"><header><strong>v0.2.0</strong></header><h3>今日やることを、自分で選べるように</h3><ul><li>期限と切り離した「今日やる」リストを追加</li><li>Todoistバックアップからの移行に対応</li><li>プロジェクト削除と確認画面を改善</li></ul></section>
@@ -726,12 +729,12 @@
       </div>
     </dialog>
 
-    <script src="task-core.js"></script>
-    <script src="todoist-import.js"></script>
-    <script src="script.js"></script>
-    <script src="sync-core.js"></script>
-    <script src="sync-config.js"></script>
-    <script src="sync.js"></script>
-    <script src="pwa.js"></script>
+    <script src="task-core.js?v=0.2.4"></script>
+    <script src="todoist-import.js?v=0.2.4"></script>
+    <script src="script.js?v=0.2.4"></script>
+    <script src="sync-core.js?v=0.2.4"></script>
+    <script src="sync-config.js?v=0.2.4"></script>
+    <script src="sync.js?v=0.2.4"></script>
+    <script src="pwa.js?v=0.2.4"></script>
   </body>
 </html>
