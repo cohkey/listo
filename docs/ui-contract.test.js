@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const html = fs.readFileSync("index.html", "utf8");
 const script = fs.readFileSync("script.js", "utf8");
 const syncScript = fs.readFileSync("sync.js", "utf8");
+const todoistScript = fs.readFileSync("todoist-import.js", "utf8");
 const pwaScript = fs.readFileSync("pwa.js", "utf8");
 const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
 const syncConfig = fs.readFileSync("sync-config.js", "utf8");
@@ -50,10 +51,36 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v4/);
+  assert.match(serviceWorker, /listo-shell-v9/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
+});
+
+test("iPhone幅でタスクカードと安全領域が画面内に収まる", () => {
+  assert.match(html, /viewport-fit=cover/);
+  assert.match(css, /min-height: 100dvh/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*grid-template-columns: 26px minmax\(0, 1fr\) auto auto auto/);
+  assert.match(css, /\.task-body \{ grid-column: 2 \/ -1; grid-row: 1; width: 100%; padding-right: 34px; \}/);
+  assert.match(css, /\.task-title \{ white-space: normal; text-overflow: clip; overflow-wrap: anywhere/);
+  assert.match(css, /height: calc\(64px \+ env\(safe-area-inset-top\)\)/);
+  assert.match(css, /overscroll-behavior-x: contain/);
+});
+
+test("TodoistのZIPまたは複数CSVを専用画面から安全に移行できる", () => {
+  assert.match(html, /id="todoist-import-button"/);
+  assert.match(html, /id="todoist-file-input"[^>]*accept="\.zip,\.csv/);
+  assert.match(html, /id="todoist-file-input"[^>]*multiple/);
+  assert.match(html, /id="todoist-import-dialog"/);
+  assert.match(html, /id="todoist-preview-body"/);
+  assert.match(html, /id="todoist-warning-list"/);
+  assert.match(html, /<script src="todoist-import\.js"><\/script>/);
+  assert.match(script, /ListoTodoist\.readSelectedFiles/);
+  assert.match(script, /ListoTodoist\.convertTodoistCSV/);
+  assert.match(todoistScript, /TYPE/);
+  assert.match(todoistScript, /DecompressionStream\("deflate-raw"\)/);
+  assert.match(serviceWorker, /todoist-import\.js/);
+  assert.match(css, /\.todoist-summary-grid/);
 });
 
 test("公開用のSupabase接続情報だけを初期設定に使う", () => {
@@ -70,6 +97,9 @@ test("アカウント登録の反応をその場に表示しログインを自�
   assert.match(syncScript, /Core\.createSession\(response, readSession\(\)\)/);
   assert.match(syncScript, /Core\.shouldRefreshSession\(session, Date\.now\(\), SESSION_REFRESH_MARGIN\)/);
   assert.match(syncScript, /restorePersistedSession\(\)/);
+  assert.match(syncScript, /sessionRefreshPromise/);
+  assert.match(syncScript, /addEventListener\("pageshow", resumeAutomaticSync\)/);
+  assert.match(syncScript, /addEventListener\("visibilitychange"/);
   assert.match(syncScript, /busyLabel: "作成中…"/);
   assert.match(syncScript, /redirect_to=/);
   assert.match(syncScript, /publicAppUrl\(\)/);
@@ -124,6 +154,14 @@ test("サイドバーにプロジェクト追加ボタンと追加画面があ�
   assert.match(script, /PROJECTS_KEY/);
 });
 
+test("サイドバーからプロジェクト名を変更できる", () => {
+  assert.match(script, /dataset\.editProject = project/);
+  assert.match(script, /function openProjectDialog\(project = null\)/);
+  assert.match(script, /renameProject\(state\.tasks, state\.projects, state\.favoriteProjects, state\.savedFilters/);
+  assert.match(html, /id="project-original-name"/);
+  assert.match(html, /id="save-project"/);
+});
+
 test("詳細画面で優先度を選択して保存できる", () => {
   assert.match(html, /<select id="edit-priority"/);
   assert.match(script, /elements\.editPriority\.value = task\.priority/);
@@ -154,11 +192,35 @@ test("詳細追加は新規作成、既存詳細は編集として保存され�
 
 test("×とキャンセルは送信ではなく閉じる専用ボタンになっている", () => {
   const closeButtons = [...html.matchAll(/<button[^>]*data-close-dialog="([^"]+)"[^>]*>/g)];
-  assert.equal(closeButtons.length, 10);
+  assert.equal(closeButtons.length, 16);
   closeButtons.forEach((match) => assert.match(match[0], /type="button"/));
-  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["csv-import-dialog", "csv-import-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog"]);
+  assert.deepEqual(closeButtons.map((match) => match[1]).sort(), ["changelog-dialog", "changelog-dialog", "csv-import-dialog", "csv-import-dialog", "delete-project-dialog", "delete-project-dialog", "filter-dialog", "filter-dialog", "project-dialog", "project-dialog", "tag-dialog", "tag-dialog", "task-dialog", "task-dialog", "todoist-import-dialog", "todoist-import-dialog"]);
   assert.doesNotMatch(html, /class="dialog-close" value="cancel"/);
   assert.match(script, /closeDialog\(document\.getElementById\(closeButton\.dataset\.closeDialog\)\)/);
+});
+
+test("今日タブは期限ではなく利用者が選んだタスクを表示する", () => {
+  assert.match(html, /data-view="today"[\s\S]*今日やる/);
+  assert.match(html, /class="today-task-button"/);
+  assert.match(html, /id="edit-planned-today"/);
+  assert.match(script, /state\.view === "today" && \(!task\.plannedToday/);
+  assert.match(script, /task\.plannedToday = !task\.plannedToday/);
+  assert.match(script, /plannedToday: state\.view === "today"/);
+  assert.doesNotMatch(script, /state\.view === "today" && \(!task\.due/);
+});
+
+test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
+  assert.match(html, /id="open-changelog"/);
+  assert.match(html, /id="changelog-dialog"/);
+  assert.match(html, /v0\.2\.2/);
+  assert.match(html, /Listoの更新履歴/);
+  assert.match(script, /const APP_VERSION = "0\.2\.3"/);
+  assert.match(css, /\.changelog-entry/);
+});
+
+test("プロジェクト削除の確定ボタンは危険操作として明瞭に表示する", () => {
+  assert.match(html, /class="danger-confirm-button"[^>]*>プロジェクトを削除する/);
+  assert.match(css, /\.danger-confirm-button \{[^}]*background: linear-gradient/);
 });
 
 test("詳細追加ボタンは補助リンクではなく十分な大きさの選択肢になっている", () => {

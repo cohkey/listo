@@ -9,9 +9,10 @@ const FILTERS_KEY = "tempo-filters-v1";
 const GROUP_KEY = "tempo-group-by";
 const FAVORITES_KEY = "tempo-favorite-projects-v1";
 const TAGS_KEY = "tempo-tags-v1";
+const APP_VERSION = "0.2.3";
 const {
   makeId, normalizeTask, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-  sortTasks, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+  sortTasks, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
   CSV_FIELDS, parseCSV, autoMapHeaders, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
 } = TempoCore;
 
@@ -27,7 +28,7 @@ const addDays = (iso, days) => {
 };
 
 const starterTasks = [
-  normalizeTask({ title: "今日いちばん大事なことを決める", due: todayISO(), project: "個人", tags: ["集中"], priority: "high", status: "doing", estimate: 1, actual: 0.5, subtasks: [{ title: "候補を書き出す", completed: true }, { title: "ひとつ選ぶ", completed: false }], createdAt: Date.now() - 3000 }),
+  normalizeTask({ title: "今日いちばん大事なことを決める", due: todayISO(), project: "個人", tags: ["集中"], priority: "high", status: "doing", plannedToday: true, estimate: 1, actual: 0.5, subtasks: [{ title: "候補を書き出す", completed: true }, { title: "ひとつ選ぶ", completed: false }], createdAt: Date.now() - 3000 }),
   normalizeTask({ title: "メールの返信をまとめて終わらせる", due: todayISO(), project: "仕事", tags: ["連絡"], priority: "normal", status: "todo", estimate: 1.5, createdAt: Date.now() - 2000 }),
   normalizeTask({ title: "帰りにコーヒー豆を買う", due: addDays(todayISO(), 1), project: "買い物", tags: ["外出"], priority: "low", status: "todo", estimate: 0.5, createdAt: Date.now() - 1000 }),
 ];
@@ -90,6 +91,7 @@ const state = {
   subtaskDraft: [],
   csvParsed: null,
   csvMapping: {},
+  todoistImport: null,
   calendarOffset: 0,
 };
 
@@ -151,6 +153,7 @@ const elements = {
   editNewProject: document.querySelector("#edit-new-project"),
   editTags: document.querySelector("#edit-tags"),
   editRepeat: document.querySelector("#edit-repeat"),
+  editPlannedToday: document.querySelector("#edit-planned-today"),
   editEstimate: document.querySelector("#edit-estimate"),
   editActual: document.querySelector("#edit-actual"),
   effortBalance: document.querySelector("#effort-balance"),
@@ -164,6 +167,11 @@ const elements = {
   toggleTaskTimer: document.querySelector("#toggle-task-timer"),
   projectDialog: document.querySelector("#project-dialog"),
   projectForm: document.querySelector("#project-form"),
+  projectOriginalName: document.querySelector("#project-original-name"),
+  projectDialogEyebrow: document.querySelector("#project-dialog-eyebrow"),
+  projectDialogTitle: document.querySelector("#project-dialog-title"),
+  projectDialogHelp: document.querySelector("#project-dialog-help"),
+  saveProjectButton: document.querySelector("#save-project"),
   newProjectName: document.querySelector("#new-project-name"),
   newProjectFavorite: document.querySelector("#new-project-favorite"),
   tagDialog: document.querySelector("#tag-dialog"),
@@ -188,6 +196,23 @@ const elements = {
   csvDuplicateMode: document.querySelector("#csv-duplicate-mode"),
   csvImportError: document.querySelector("#csv-import-error"),
   executeCsvImport: document.querySelector("#execute-csv-import"),
+  todoistFileInput: document.querySelector("#todoist-file-input"),
+  todoistImportDialog: document.querySelector("#todoist-import-dialog"),
+  todoistImportForm: document.querySelector("#todoist-import-form"),
+  todoistImportContent: document.querySelector("#todoist-import-content"),
+  todoistFileName: document.querySelector("#todoist-file-name"),
+  todoistFileMeta: document.querySelector("#todoist-file-meta"),
+  todoistProjectCount: document.querySelector("#todoist-project-count"),
+  todoistTaskCount: document.querySelector("#todoist-task-count"),
+  todoistSubtaskCount: document.querySelector("#todoist-subtask-count"),
+  todoistWarningCount: document.querySelector("#todoist-warning-count"),
+  todoistPreviewSummary: document.querySelector("#todoist-preview-summary"),
+  todoistPreviewBody: document.querySelector("#todoist-preview-body"),
+  todoistWarningPanel: document.querySelector("#todoist-warning-panel"),
+  todoistWarningList: document.querySelector("#todoist-warning-list"),
+  todoistDuplicateMode: document.querySelector("#todoist-duplicate-mode"),
+  todoistImportError: document.querySelector("#todoist-import-error"),
+  executeTodoistImport: document.querySelector("#execute-todoist-import"),
   filterNavigation: document.querySelector("#filter-navigation"),
   filterDialog: document.querySelector("#filter-dialog"),
   filterForm: document.querySelector("#filter-form"),
@@ -305,7 +330,7 @@ function getVisibleTasks(includeDone = false) {
       if (!matchesCommonFilters(task)) return false;
       if (state.view === "trash") return true;
       if (state.activeFilterId) return true;
-      if (state.view === "today" && (!task.due || task.due > today || (!includeDone && task.status === "done"))) return false;
+      if (state.view === "today" && (!task.plannedToday || (!includeDone && task.status === "done"))) return false;
       if (state.view === "all" && !includeDone && task.status === "done") return false;
       if (state.view === "upcoming" && (task.status === "done" || !task.due || task.due < today)) return false;
       if (state.view === "completed" && task.status !== "done") return false;
@@ -368,6 +393,10 @@ function createListTaskCard(task) {
   timerButton.querySelector(".timer-icon").textContent = task.timerStartedAt ? "■" : "▶";
   timerButton.querySelector(".timer-value").textContent = task.timerStartedAt ? formatTimer(activeTimerSeconds(task)) : "開始";
   timerButton.setAttribute("aria-label", task.timerStartedAt ? `「${task.title}」の時間計測を停止` : `「${task.title}」の時間計測を開始`);
+  const todayButton = card.querySelector(".today-task-button");
+  todayButton.classList.toggle("is-planned", task.plannedToday);
+  todayButton.innerHTML = task.plannedToday ? "☀<span>今日から外す</span>" : "☀<span>今日やる</span>";
+  todayButton.setAttribute("aria-label", task.plannedToday ? `「${task.title}」を今日やることから外す` : `「${task.title}」を今日やることに追加`);
   card.querySelector(".task-check").setAttribute("aria-label", task.status === "done" ? "未完了に戻す" : "完了にする");
   card.querySelector(".tag-row").replaceWith(makeTagRow(task.tags));
   return card;
@@ -498,7 +527,7 @@ function renderTable(tasks) {
   wrapper.className = "table-scroll";
   const table = document.createElement("table");
   table.className = "task-table";
-  table.innerHTML = `<thead><tr><th class="table-check-column">完了</th><th>タスク名</th><th>プロジェクト</th><th>ステータス</th><th>優先度</th><th>期限</th><th>繰り返し</th><th>タグ</th><th>工数（実績 / 見積）</th><th>サブタスク</th><th><span class="visually-hidden">操作</span></th></tr></thead>`;
+  table.innerHTML = `<thead><tr><th class="table-check-column">完了</th><th>タスク名</th><th>今日</th><th>プロジェクト</th><th>ステータス</th><th>優先度</th><th>期限</th><th>繰り返し</th><th>タグ</th><th>工数（実績 / 見積）</th><th>サブタスク</th><th><span class="visually-hidden">操作</span></th></tr></thead>`;
   const body = document.createElement("tbody");
   const projects = getProjects();
   groups.forEach((group) => {
@@ -506,7 +535,7 @@ function renderTable(tasks) {
     const groupRow = document.createElement("tr");
     groupRow.className = "table-group-row";
     const groupCell = document.createElement("th");
-    groupCell.colSpan = 11;
+    groupCell.colSpan = 12;
     const heading = document.createElement("div");
     heading.className = "table-group-heading";
     const title = document.createElement("strong");
@@ -539,6 +568,15 @@ function renderTable(tasks) {
     const titleCell = document.createElement("td");
     titleCell.className = "table-title-cell";
     titleCell.append(makeTableTitleInput(task));
+
+    const todayCell = document.createElement("td");
+    const todayButton = document.createElement("button");
+    todayButton.type = "button";
+    todayButton.className = `table-today-button${task.plannedToday ? " is-planned" : ""}`;
+    todayButton.dataset.action = "toggle-today";
+    todayButton.textContent = task.plannedToday ? "☀ 対象" : "☀ 追加";
+    todayButton.setAttribute("aria-label", task.plannedToday ? `「${task.title}」を今日やることから外す` : `「${task.title}」を今日やることに追加`);
+    todayCell.append(todayButton);
 
     const projectCell = document.createElement("td");
     const projectSelect = makeTableSelect("project", task.project, projects.map((project) => [project, project]), `${task.title}のプロジェクト`, "project");
@@ -594,7 +632,7 @@ function renderTable(tasks) {
     detailButton.setAttribute("aria-label", `「${task.title}」の詳細を開く`);
     actionCell.append(detailButton);
 
-    row.append(checkCell, titleCell, projectCell, statusCell, priorityCell, dueCell, repeatCell, tagsCell, effortCell, subtaskCell, actionCell);
+    row.append(checkCell, titleCell, todayCell, projectCell, statusCell, priorityCell, dueCell, repeatCell, tagsCell, effortCell, subtaskCell, actionCell);
     body.append(row);
   });
   });
@@ -645,7 +683,13 @@ function renderBoard() {
       detail.textContent = `${formatDeadlineLabel(task)}${task.estimate ? ` · ${formatHours(task.estimate)}` : ""}`;
       detail.className = "kanban-card-due";
       detail.dataset.tone = dueTone(task.due, task.status);
-      meta.append(project, detail);
+      const todayButton = document.createElement("button");
+      todayButton.type = "button";
+      todayButton.className = `kanban-today-button${task.plannedToday ? " is-planned" : ""}`;
+      todayButton.dataset.action = "toggle-today";
+      todayButton.textContent = task.plannedToday ? "☀ 今日" : "☀ 追加";
+      todayButton.setAttribute("aria-label", task.plannedToday ? `「${task.title}」を今日やることから外す` : `「${task.title}」を今日やることに追加`);
+      meta.append(project, detail, todayButton);
       card.append(meta);
       stack.append(card);
     });
@@ -655,11 +699,7 @@ function renderBoard() {
 }
 
 function renderTimeline() {
-  const tasks = sortTasks(
-    state.tasks.filter((task) => matchesCommonFilters(task) && (state.view !== "completed" || task.status === "done")),
-    state.sortPrimary,
-    state.sortSecondary,
-  );
+  const tasks = getVisibleTasks(true);
   const grid = document.createElement("div");
   grid.className = "timeline-grid";
   for (let index = 0; index < 7; index += 1) {
@@ -906,7 +946,7 @@ function render() {
   const reportView = state.view === "report";
   const dashboardTasks = state.activeProject
     ? state.tasks.filter((task) => task.project === state.activeProject)
-    : state.tasks;
+    : state.view === "today" ? state.tasks.filter((task) => task.plannedToday) : state.tasks;
   const dashboardStats = calculateDashboardStats(dashboardTasks, todayISO());
   document.body.classList.toggle("is-upcoming", upcomingView);
   document.body.classList.toggle("is-wide-layout", upcomingView || reportView || ["table", "board", "timeline"].includes(state.mode));
@@ -941,6 +981,7 @@ function render() {
     elements.timeline.hidden = true;
   }
   const emptyCopy = state.activeProject ? ["このプロジェクトは空です。", `上の追加欄から作成すると「${state.activeProject}」へ自動で追加されます。`] : ({
+    today: ["今日やることは未選択です。", "「すべて」でタスクの☀ボタンを押すか、ここで追加すると今日のリストに入ります。"],
     upcoming: ["近日予定はありません。", "明日以降の期限を設定したタスクがここに表示されます。"],
     completed: ["完了したタスクはありません。", "タスクを完了するとここに成果が残ります。"],
     trash: ["ゴミ箱は空です。", "削除したタスクがここに表示されます。"],
@@ -960,7 +1001,7 @@ function render() {
 function updateNavigationCounts() {
   const today = todayISO();
   const counts = {
-    today: state.tasks.filter((task) => task.status !== "done" && task.due && task.due <= today).length,
+    today: state.tasks.filter((task) => task.status !== "done" && task.plannedToday).length,
     all: state.tasks.filter((task) => task.status !== "done").length,
     upcoming: state.tasks.filter((task) => task.status !== "done" && task.due && task.due >= today).length,
     completed: state.tasks.filter((task) => task.status === "done").length,
@@ -1001,13 +1042,19 @@ function createProjectNavigationRow(project, { favoriteSection = false, index = 
   favorite.setAttribute("aria-label", state.favoriteProjects.includes(project) ? `「${project}」をお気に入りから外す` : `「${project}」をお気に入りに追加`);
   row.append(button, favorite);
   if (!favoriteSection && project !== "未分類") {
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "project-edit-button";
+    edit.dataset.editProject = project;
+    edit.textContent = "✎";
+    edit.setAttribute("aria-label", `「${project}」プロジェクト名を変更`);
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "project-remove-button";
     remove.dataset.removeProject = project;
     remove.textContent = "×";
     remove.setAttribute("aria-label", `「${project}」プロジェクトを削除`);
-    row.append(remove);
+    row.append(edit, remove);
   }
   return row;
 }
@@ -1038,13 +1085,40 @@ function toggleFavoriteProject(project) {
   showToast(state.favoriteProjects.includes(project) ? `「${project}」をお気に入りに追加しました` : `「${project}」をお気に入りから外しました`, { showUndo: false });
 }
 
+function openProjectDialog(project = null) {
+  const editing = Boolean(project);
+  elements.projectOriginalName.value = project || "";
+  elements.projectDialogEyebrow.textContent = editing ? "EDIT PROJECT" : "NEW PROJECT";
+  elements.projectDialogTitle.textContent = editing ? "プロジェクト名を変更" : "プロジェクトを追加";
+  elements.projectDialogHelp.textContent = editing
+    ? "名称はタスク、お気に入り、保存フィルターにも反映されます。"
+    : "追加後、そのプロジェクトを開いた状態になります。";
+  elements.saveProjectButton.textContent = editing ? "変更を保存" : "追加する";
+  elements.newProjectName.value = project || "";
+  elements.newProjectName.setCustomValidity("");
+  elements.newProjectFavorite.checked = editing ? state.favoriteProjects.includes(project) : false;
+  elements.projectDialog.showModal();
+  requestAnimationFrame(() => {
+    elements.newProjectName.focus();
+    if (editing) elements.newProjectName.select();
+  });
+}
+
 function deleteProject(project) {
-  if (project === "未分類") return;
+  if (project === "未分類" || !getProjects().includes(project)) return;
+  const dialog = document.querySelector("#delete-project-dialog");
   const taskCount = [...state.tasks, ...state.trash].filter((task) => task.project === project).length;
-  const message = taskCount
-    ? `「${project}」を削除しますか？\n${taskCount}件のタスクは「未分類」へ移動します。`
-    : `「${project}」を削除しますか？`;
-  if (!confirm(message)) return;
+  dialog.dataset.project = project;
+  document.querySelector("#delete-project-message").textContent = `「${project}」を削除しますか？`;
+  document.querySelector("#delete-project-impact").textContent = taskCount
+    ? `${taskCount}件のタスク（完了済み・ゴミ箱内を含む）は「未分類」へ移動します。タスク自体は削除されません。`
+    : "このプロジェクトにはタスクがありません。";
+  dialog.showModal();
+  document.querySelector("#cancel-project-delete").focus();
+}
+
+function executeProjectDeletion(project) {
+  if (project === "未分類" || !getProjects().includes(project)) return;
   const result = removeProject(state.tasks, state.projects, state.favoriteProjects, state.savedFilters, project);
   const trashResult = removeProject(state.trash, [], [], [], project);
   if (!result.removed) return;
@@ -1065,6 +1139,18 @@ function deleteProject(project) {
   const moved = result.moved + trashResult.moved;
   showToast(moved ? `プロジェクトを削除し、${moved}件を「未分類」へ移動しました` : "プロジェクトを削除しました", { showUndo: false });
 }
+
+document.querySelector("#delete-project-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const dialog = document.querySelector("#delete-project-dialog");
+  const project = dialog.dataset.project;
+  dialog.close();
+  executeProjectDeletion(project);
+});
+
+document.querySelector("#delete-project-dialog").addEventListener("close", (event) => {
+  delete event.target.dataset.project;
+});
 
 function renderTagManager() {
   state.tags = collectTags(state.tasks, state.tags);
@@ -1184,7 +1270,7 @@ function updateFilterNavigation() {
 
 function updateHeading() {
   const labels = {
-    today: ["今日", "今日に集中しましょう。"],
+    today: ["今日やること", "期限とは別に、自分で選んだタスクへ集中できます。"],
     all: ["すべてのタスク", "やることを、ひと目で。"],
     upcoming: ["近日予定", "週ごとのカレンダーで、期限付きタスクを先まで見通せます。"],
     completed: ["完了したタスク", "積み重ねた成果です。"],
@@ -1202,10 +1288,10 @@ function updateHeading() {
 function updateProgress() {
   const scopeTasks = state.activeProject
     ? state.tasks.filter((task) => task.project === state.activeProject)
-    : state.tasks.filter((task) => task.due === todayISO());
+    : state.view === "today" ? state.tasks.filter((task) => task.plannedToday) : state.tasks;
   const completed = scopeTasks.filter((task) => task.status === "done").length;
   const percent = scopeTasks.length ? Math.round((completed / scopeTasks.length) * 100) : 0;
-  const label = state.activeProject ? `${state.activeProject}プロジェクトの進捗率` : "今日の達成率";
+  const label = state.activeProject ? `${state.activeProject}プロジェクトの進捗率` : state.view === "today" ? "今日やることの達成率" : "タスクの達成率";
   elements.progress.style.setProperty("--progress", `${percent * 3.6}deg`);
   elements.progressValue.textContent = `${percent}%`;
   elements.progress.setAttribute("aria-label", `${label} ${percent}%（${completed} / ${scopeTasks.length}件完了）`);
@@ -1333,6 +1419,69 @@ function openCsvPasteDialog() {
   elements.executeCsvImport.disabled = true;
   elements.csvImportDialog.showModal();
   requestAnimationFrame(() => elements.csvPasteInput.focus());
+}
+
+function openTodoistFilePicker() {
+  elements.todoistFileInput.value = "";
+  elements.todoistFileInput.click();
+}
+
+function renderTodoistImportPreview(result, selectedNames) {
+  state.todoistImport = result;
+  elements.todoistFileName.textContent = selectedNames.length === 1 ? selectedNames[0] : `${selectedNames.length}個のファイル`;
+  elements.todoistFileMeta.textContent = `${result.conversions.length}個のCSVを解析しました`;
+  elements.todoistProjectCount.textContent = result.projects.length;
+  elements.todoistTaskCount.textContent = result.tasks.length;
+  elements.todoistSubtaskCount.textContent = result.totals.subtasks || 0;
+  elements.todoistWarningCount.textContent = result.warnings.length;
+  elements.todoistPreviewSummary.textContent = `${result.tasks.length}件・${result.projects.length}プロジェクト`;
+  elements.todoistPreviewBody.replaceChildren();
+  const priorityLabels = { high: "高", normal: "通常", low: "低" };
+  const repeatLabels = { none: "なし", daily: "毎日", weekdays: "平日", weekly: "毎週", monthly: "毎月" };
+  result.tasks.slice(0, 12).forEach((task) => {
+    const row = document.createElement("tr");
+    [task.title, task.project, priorityLabels[task.priority], task.due || "期限なし", repeatLabels[task.repeat], task.tags.join("、") || "なし"].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      cell.title = value;
+      row.append(cell);
+    });
+    elements.todoistPreviewBody.append(row);
+  });
+  elements.todoistWarningList.replaceChildren();
+  result.warnings.slice(0, 30).forEach((warning) => {
+    const item = document.createElement("li");
+    item.textContent = `${warning.fileName} ${warning.row}行目：${warning.message}`;
+    elements.todoistWarningList.append(item);
+  });
+  if (result.warnings.length > 30) {
+    const item = document.createElement("li");
+    item.textContent = `ほか${result.warnings.length - 30}件`;
+    elements.todoistWarningList.append(item);
+  }
+  elements.todoistWarningPanel.hidden = !result.warnings.length;
+  elements.todoistImportContent.hidden = false;
+  elements.executeTodoistImport.disabled = !result.tasks.length;
+}
+
+async function prepareTodoistImport(files) {
+  elements.todoistImportError.textContent = "";
+  elements.todoistImportContent.hidden = true;
+  elements.executeTodoistImport.disabled = true;
+  state.todoistImport = null;
+  if (!elements.todoistImportDialog.open) elements.todoistImportDialog.showModal();
+  try {
+    const selected = Array.from(files || []);
+    elements.todoistFileName.textContent = "読み取り中…";
+    elements.todoistFileMeta.textContent = "ZIP内のプロジェクトCSVを確認しています";
+    const sources = await ListoTodoist.readSelectedFiles(selected);
+    const conversions = sources.map((source) => ListoTodoist.convertTodoistCSV(source.text, source.name, { referenceDate: todayISO() }));
+    renderTodoistImportPreview(ListoTodoist.combineConversions(conversions), selected.map((file) => file.name));
+  } catch (error) {
+    elements.todoistFileName.textContent = "読み取れませんでした";
+    elements.todoistFileMeta.textContent = "Todoistバックアップを確認してください";
+    elements.todoistImportError.textContent = error.message;
+  }
 }
 
 function currentBackupSettings() {
@@ -1493,6 +1642,15 @@ function toggleTaskTimer(taskId) {
   syncTimerDisplays(now);
 }
 
+function togglePlannedToday(taskId) {
+  const task = state.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  task.plannedToday = !task.plannedToday;
+  saveTasks();
+  render();
+  showToast(task.plannedToday ? `「${task.title}」を今日やることに追加しました` : `「${task.title}」を今日やることから外しました`);
+}
+
 function renderSubtaskEditor() {
   elements.subtaskList.replaceChildren();
   elements.subtaskList.className = "subtask-list";
@@ -1534,6 +1692,7 @@ function openTaskDialog(taskId) {
   elements.editNewProject.value = "";
   elements.editTags.value = task.tags.join(", ");
   elements.editRepeat.value = task.repeat;
+  elements.editPlannedToday.checked = task.plannedToday;
   elements.editEstimate.value = task.estimate || "";
   elements.editActual.value = task.actual ? Number(task.actual.toFixed(2)) : "";
   state.subtaskDraft = task.subtasks.map((item) => ({ ...item }));
@@ -1565,6 +1724,7 @@ function openNewTaskDialog() {
   elements.editNewProject.value = "";
   elements.editTags.value = "";
   elements.editRepeat.value = "none";
+  elements.editPlannedToday.checked = state.view === "today";
   elements.editEstimate.value = "";
   elements.editActual.value = "";
   state.subtaskDraft = [];
@@ -1597,7 +1757,7 @@ elements.form.addEventListener("submit", (event) => {
   if (!title) return;
   const dueChoice = elements.due.value;
   const due = dueChoice === "today" ? todayISO() : dueChoice === "tomorrow" ? addDays(todayISO(), 1) : null;
-  state.tasks.unshift(normalizeTask({ title, due, project: resolveProject(state.activeProject, elements.project.value), priority: elements.priority.value, status: "todo", createdAt: Date.now() }));
+  state.tasks.unshift(normalizeTask({ title, due, project: resolveProject(state.activeProject, elements.project.value), priority: elements.priority.value, status: "todo", plannedToday: state.view === "today", createdAt: Date.now() }));
   saveTasks();
   elements.input.value = "";
   if (state.view === "completed") setView("all");
@@ -1638,6 +1798,8 @@ elements.list.addEventListener("click", (event) => {
     showToast(nextOccurrence ? `完了しました。次回は${formatDate(nextOccurrence.due)}です` : task.completed ? "おつかれさま！ 1つ完了しました" : "未完了に戻しました");
   } else if (event.target.closest(".task-timer-button")) {
     toggleTaskTimer(task.id);
+  } else if (event.target.closest(".today-task-button")) {
+    togglePlannedToday(task.id);
   } else if (event.target.closest(".priority-button")) {
     task.priority = task.priority === "high" ? "normal" : "high";
     saveTasks(); render();
@@ -1647,8 +1809,10 @@ elements.list.addEventListener("click", (event) => {
 });
 
 elements.table.addEventListener("click", (event) => {
+  const todayButton = event.target.closest("[data-action='toggle-today']");
   const detailButton = event.target.closest("[data-action='detail']");
   const row = event.target.closest("tr[data-id]");
+  if (todayButton && row) return togglePlannedToday(row.dataset.id);
   if (detailButton && row) openTaskDialog(row.dataset.id);
 });
 
@@ -1686,7 +1850,9 @@ elements.table.addEventListener("keydown", (event) => {
 
 elements.board.addEventListener("click", (event) => {
   const card = event.target.closest(".kanban-card");
-  if (card) openTaskDialog(card.dataset.id);
+  if (!card) return;
+  if (event.target.closest("[data-action='toggle-today']")) return togglePlannedToday(card.dataset.id);
+  openTaskDialog(card.dataset.id);
 });
 
 elements.timeline.addEventListener("click", (event) => {
@@ -1743,6 +1909,8 @@ elements.board.addEventListener("drop", (event) => {
 
 document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => setView(item.dataset.view)));
 function handleProjectNavigationClick(event) {
+  const editProjectName = event.target.closest("[data-edit-project]")?.dataset.editProject;
+  if (editProjectName) return openProjectDialog(editProjectName);
   const removeProjectName = event.target.closest("[data-remove-project]")?.dataset.removeProject;
   if (removeProjectName) return deleteProject(removeProjectName);
   const favoriteProject = event.target.closest("[data-favorite-project]")?.dataset.favoriteProject;
@@ -1819,6 +1987,7 @@ elements.editForm.addEventListener("submit", (event) => {
     actual: elements.editActual.value,
     subtasks: state.subtaskDraft,
     repeat: elements.editRepeat.value,
+    plannedToday: elements.editPlannedToday.checked,
   });
   if (!state.projects.includes(task.project)) {
     state.projects.push(task.project);
@@ -1839,10 +2008,11 @@ elements.editForm.addEventListener("submit", (event) => {
 });
 
 document.querySelector("#open-project-dialog").addEventListener("click", () => {
-  elements.newProjectName.value = "";
-  elements.newProjectFavorite.checked = false;
-  elements.projectDialog.showModal();
-  requestAnimationFrame(() => elements.newProjectName.focus());
+  openProjectDialog();
+});
+
+document.querySelector("#open-changelog").addEventListener("click", () => {
+  document.querySelector("#changelog-dialog").showModal();
 });
 
 document.querySelector("#open-tag-dialog").addEventListener("click", openTagManager);
@@ -1914,6 +2084,41 @@ elements.filterForm.addEventListener("submit", (event) => {
 
 elements.projectForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const originalName = elements.projectOriginalName.value;
+  if (originalName) {
+    const newName = normalizeProjectName(elements.newProjectName.value);
+    const result = renameProject(state.tasks, state.projects, state.favoriteProjects, state.savedFilters, originalName, elements.newProjectName.value);
+    if (!result.changed) {
+      if (result.reason === "same") {
+        elements.projectDialog.close();
+        return;
+      }
+      const message = result.reason === "duplicate" ? "同じ名前のプロジェクトがすでにあります。" : "この名前には変更できません。";
+      elements.newProjectName.setCustomValidity(message);
+      elements.newProjectName.reportValidity();
+      return;
+    }
+    const trashResult = renameProject(state.trash, [originalName], [], [], originalName, newName);
+    state.tasks = result.tasks;
+    state.trash = trashResult.tasks;
+    state.projects = result.projects;
+    state.favoriteProjects = result.favoriteProjects;
+    state.savedFilters = result.savedFilters;
+    if (state.activeProject === originalName) state.activeProject = newName;
+    if (elements.newProjectFavorite.checked && !state.favoriteProjects.includes(newName)) {
+      state.favoriteProjects.push(newName);
+    } else if (!elements.newProjectFavorite.checked) {
+      state.favoriteProjects = state.favoriteProjects.filter((project) => project !== newName);
+    }
+    saveTasks({ recordUndo: false });
+    saveProjects();
+    saveFavoriteProjects();
+    saveFilters();
+    elements.projectDialog.close();
+    render();
+    showToast(`${result.affected + trashResult.affected}件のタスクとプロジェクト名を更新しました`, { showUndo: false });
+    return;
+  }
   const result = addProject(state.projects, elements.newProjectName.value);
   if (!result.name) return;
   state.projects = result.projects;
@@ -1929,6 +2134,8 @@ elements.projectForm.addEventListener("submit", (event) => {
   showToast(result.added ? "プロジェクトを追加しました" : "既存のプロジェクトを開きました");
 });
 
+elements.newProjectName.addEventListener("input", () => elements.newProjectName.setCustomValidity(""));
+
 elements.newProjectName.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.isComposing) return;
   event.preventDefault();
@@ -1939,6 +2146,8 @@ document.querySelector("#csv-import-button").addEventListener("click", () => {
   elements.csvFileInput.value = "";
   elements.csvFileInput.click();
 });
+document.querySelector("#todoist-import-button").addEventListener("click", openTodoistFilePicker);
+document.querySelector("#change-todoist-file").addEventListener("click", openTodoistFilePicker);
 document.querySelector("#csv-paste-button").addEventListener("click", openCsvPasteDialog);
 document.querySelector("#parse-csv-paste").addEventListener("click", () => prepareCsvText(elements.csvPasteInput.value));
 elements.csvPasteInput.addEventListener("keydown", (event) => {
@@ -1953,6 +2162,9 @@ document.querySelector("#change-csv-file").addEventListener("click", () => {
 elements.csvFileInput.addEventListener("change", () => {
   const file = elements.csvFileInput.files?.[0];
   if (file) prepareCsvImport(file);
+});
+elements.todoistFileInput.addEventListener("change", () => {
+  if (elements.todoistFileInput.files?.length) prepareTodoistImport(elements.todoistFileInput.files);
 });
 elements.csvMappingGrid.addEventListener("change", (event) => {
   const select = event.target.closest("select[data-field]");
@@ -1982,6 +2194,26 @@ elements.csvImportForm.addEventListener("submit", (event) => {
   setView("all");
   const skippedTotal = merged.skipped + converted.skippedRows.length;
   showToast(`${merged.added}件を取り込みました${skippedTotal ? `（${skippedTotal}件スキップ）` : ""}`);
+});
+
+elements.todoistImportForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!state.todoistImport?.tasks.length) return;
+  const merged = mergeImportedTasks(state.tasks, state.todoistImport.tasks, {
+    mode: "append",
+    skipDuplicates: elements.todoistDuplicateMode.value === "skip",
+  });
+  state.tasks = merged.tasks;
+  state.projects = [...new Set([...state.projects, ...state.todoistImport.projects])];
+  state.tags = collectTags(state.tasks, state.tags);
+  saveTasks();
+  saveProjects();
+  saveTags();
+  elements.todoistImportDialog.close();
+  setView("all");
+  const warningText = state.todoistImport.warnings.length ? `・確認事項${state.todoistImport.warnings.length}件` : "";
+  showToast(`Todoistから${merged.added}件を移行しました${merged.skipped ? `（重複${merged.skipped}件をスキップ）` : ""}${warningText}`);
+  state.todoistImport = null;
 });
 
 document.querySelector("#csv-export-button").addEventListener("click", () => {
@@ -2087,6 +2319,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 if (localStorage.getItem(THEME_KEY) !== "light") document.body.classList.add("is-dark");
+document.getElementById("open-changelog").querySelector("strong").textContent = `v${APP_VERSION}`;
 elements.dateLabel.textContent = new Intl.DateTimeFormat("ja-JP", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 window.TempoAppSyncAdapter = { getSnapshot: createSyncSnapshot, applySnapshot: applySyncSnapshot };
 saveTasks({ recordUndo: false, sync: false });

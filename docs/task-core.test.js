@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   normalizeTask, nextRecurringDue, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-  sortTasks, groupTasksByProject, groupTasks, resolveProject, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+  sortTasks, groupTasksByProject, groupTasks, resolveProject, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
   parseCSV, autoMapHeaders, normalizeImportDate, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
 } = require("./task-core.js");
 
@@ -218,6 +218,25 @@ test("空のプロジェクトを追加して重複なく保持できる", () =>
   assert.deepEqual(duplicate.projects, created.projects);
 });
 
+test("プロジェクト名の変更をタスク・お気に入り・保存フィルターへ一括反映する", () => {
+  const tasks = [makeTask({ id: "work", project: "仕事" }), makeTask({ id: "home", project: "個人" })];
+  const result = renameProject(tasks, ["未分類", "仕事", "個人"], ["仕事"], [{ id: "f1", project: "仕事" }], " 仕事 ", " 本業 ");
+  assert.equal(result.changed, true);
+  assert.equal(result.affected, 1);
+  assert.equal(result.tasks[0].project, "本業");
+  assert.deepEqual(result.projects, ["未分類", "本業", "個人"]);
+  assert.deepEqual(result.favoriteProjects, ["本業"]);
+  assert.equal(result.savedFilters[0].project, "本業");
+});
+
+test("プロジェクト名は重複・未分類・空文字へ変更できない", () => {
+  const args = [[], ["未分類", "仕事", "個人"], [], []];
+  assert.equal(renameProject(...args, "仕事", "個人").reason, "duplicate");
+  assert.equal(renameProject(...args, "未分類", "その他").reason, "reserved");
+  assert.equal(renameProject(...args, "仕事", " ").reason, "invalid");
+  assert.equal(renameProject(...args, "仕事", "仕事").reason, "same");
+});
+
 test("プロジェクト削除でタスクを未分類へ移し関連設定も整理する", () => {
   const tasks = [makeTask({ id: "work", project: "仕事" }), makeTask({ id: "home", project: "個人" })];
   const result = removeProject(tasks, ["未分類", "仕事", "個人"], ["仕事"], [{ id: "f1", project: "仕事", tag: "" }], "仕事");
@@ -261,16 +280,16 @@ test("詳細追加の全項目をタスクデータへ反映できる", () => {
   const task = applyTaskDetails(base, {
     title: " 旅行の予約 ", status: "doing", priority: "high", due: "2026-08-01",
     project: "夏休み", tags: "重要, 予約、#重要", estimate: "3.5", actual: "1",
-    subtasks: [{ id: "sub-1", title: "ホテル", completed: true }],
+    subtasks: [{ id: "sub-1", title: "ホテル", completed: true }], plannedToday: true,
   }, 100);
   assert.deepEqual({
     title: task.title, status: task.status, priority: task.priority, due: task.due,
     project: task.project, tags: task.tags, estimate: task.estimate, actual: task.actual,
-    completed: task.completed, subtasks: task.subtasks,
+    completed: task.completed, subtasks: task.subtasks, plannedToday: task.plannedToday,
   }, {
     title: "旅行の予約", status: "doing", priority: "high", due: "2026-08-01",
     project: "夏休み", tags: ["重要", "予約"], estimate: 3.5, actual: 1,
-    completed: false, subtasks: [{ id: "sub-1", title: "ホテル", completed: true }],
+    completed: false, subtasks: [{ id: "sub-1", title: "ホテル", completed: true }], plannedToday: true,
   });
 });
 
@@ -358,20 +377,22 @@ test("追加時の重複スキップと全置換を選べる", () => {
 });
 
 test("Excel向けBOM付きCSVへ書き出して再解析できる", () => {
-  const task = makeTask({ id: "export", title: "確認,返信", status: "done", priority: "high", due: "2026-07-20", project: "仕事", tags: ["重要", "連絡"], estimate: 2, actual: 1.5, subtasks: [{ id: "s1", title: "メール\n確認", completed: true }] });
+  const task = makeTask({ id: "export", title: "確認,返信", status: "done", priority: "high", due: "2026-07-20", project: "仕事", tags: ["重要", "連絡"], estimate: 2, actual: 1.5, plannedToday: true, subtasks: [{ id: "s1", title: "メール\n確認", completed: true }] });
   const csv = tasksToCSV([task]);
   assert.equal(csv.charCodeAt(0), 0xFEFF);
   const parsed = parseCSV(csv);
   assert.equal(parsed.rows[0][0], "確認,返信");
   assert.equal(parsed.rows[0][1], "完了");
   assert.equal(parsed.rows[0][8], "[x] メール\n確認");
+  assert.equal(parsed.rows[0][9], "はい");
 });
 
 test("JSONバックアップでタスク・プロジェクト・設定を往復できる", () => {
-  const tasks = [makeTask({ id: "backup", title: "保存", project: "保管" })];
+  const tasks = [makeTask({ id: "backup", title: "保存", project: "保管", plannedToday: true })];
   const json = createBackup(tasks, ["未分類", "保管"], { theme: "dark", mode: "board" }, "2026-07-16T00:00:00.000Z");
   const restored = parseBackup(json);
   assert.equal(restored.tasks[0].title, "保存");
+  assert.equal(restored.tasks[0].plannedToday, true);
   assert.deepEqual(restored.projects, ["未分類", "保管"]);
   assert.deepEqual(restored.settings, { theme: "dark", mode: "board" });
   assert.throws(() => parseBackup('{"tasks":[]}'), /対応していない/);

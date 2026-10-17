@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#08111f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -36,7 +36,7 @@
 
         <nav class="nav-list" aria-label="タスクの表示">
           <button class="nav-item is-active" data-view="today">
-            <span class="nav-icon nav-icon--sun">☀</span><span>今日</span>
+            <span class="nav-icon nav-icon--sun">☀</span><span>今日やる</span>
             <span class="nav-count" data-count="today">0</span>
           </button>
           <button class="nav-item" data-view="all">
@@ -95,11 +95,13 @@
             <button type="button" id="sync-open-button" class="sync-open-button"><span>⌁</span><span id="sync-sidebar-label">iPhoneと同期</span><i id="sync-sidebar-dot" aria-hidden="true"></i></button>
             <button type="button" id="csv-paste-button"><span>▣</span>CSV貼付</button>
             <button type="button" id="csv-import-button"><span>⇧</span>CSV取込</button>
+            <button type="button" id="todoist-import-button" class="todoist-import-button"><span>↗</span>Todoist移行</button>
             <button type="button" id="csv-export-button"><span>⇩</span>CSV出力</button>
             <button type="button" id="json-export-button"><span>◇</span>JSON保存</button>
             <button type="button" id="json-import-button"><span>◆</span>JSON復元</button>
           </div>
           <input id="csv-file-input" type="file" accept=".csv,text/csv" hidden />
+          <input id="todoist-file-input" type="file" accept=".zip,.csv,application/zip,text/csv" multiple hidden />
           <input id="json-file-input" type="file" accept=".json,application/json" hidden />
         </div>
 
@@ -107,6 +109,9 @@
           <span class="tip-spark">✦</span>
           <p><strong>小さく始めよう</strong><br />まず1つ終わらせると、勢いがつきます。</p>
         </div>
+        <button class="app-version-button" id="open-changelog" type="button" aria-haspopup="dialog">
+          <span>Listo</span><strong>v0.2.3</strong><small>更新履歴</small>
+        </button>
       </aside>
 
       <div class="sidebar-scrim" id="sidebar-scrim"></div>
@@ -129,8 +134,8 @@
           <div class="page-heading">
             <div>
               <p class="eyebrow" id="date-label"></p>
-              <h1 id="view-title">今日</h1>
-              <p class="page-subtitle" id="view-subtitle">今日に集中しましょう。</p>
+              <h1 id="view-title">今日やること</h1>
+              <p class="page-subtitle" id="view-subtitle">期限とは別に、自分で選んだタスクへ集中できます。</p>
             </div>
             <div class="progress-ring" id="progress-ring" aria-label="今日の達成率">
               <span id="progress-value">0%</span>
@@ -169,9 +174,9 @@
                 <label class="option-chip">
                   <span>▦</span>
                   <select id="due-select" aria-label="期限">
+                    <option value="none">期限なし</option>
                     <option value="today">今日</option>
                     <option value="tomorrow">明日</option>
-                    <option value="none">期限なし</option>
                   </select>
                 </label>
                 <label class="option-chip">
@@ -278,6 +283,7 @@
           </div>
           <div class="tag-row"></div>
         </div>
+        <button class="today-task-button" type="button" aria-label="今日やることに追加">☀<span>今日やる</span></button>
         <button class="task-timer-button" type="button" aria-label="時間計測を開始"><span class="timer-icon">▶</span><span class="timer-value">開始</span></button>
         <button class="priority-button" type="button" aria-label="優先度を切り替える">⚑</button>
         <button class="more-button" aria-label="タスクを編集">•••</button>
@@ -342,6 +348,10 @@
               <option value="weekly">毎週</option>
               <option value="monthly">毎月</option>
             </select>
+          </label>
+          <label class="today-field">
+            <input id="edit-planned-today" type="checkbox" />
+            <span><strong>今日やる</strong><small>期限に関係なく「今日やること」に表示</small></span>
           </label>
         </div>
 
@@ -417,26 +427,66 @@
       </form>
     </dialog>
 
+    <dialog class="project-dialog" id="delete-project-dialog" aria-labelledby="delete-project-title" aria-describedby="delete-project-message delete-project-impact">
+      <form method="dialog" class="project-dialog-shell" id="delete-project-form">
+        <header class="dialog-header">
+          <h2 id="delete-project-title">プロジェクトを削除</h2>
+          <button class="dialog-close" type="button" data-close-dialog="delete-project-dialog" aria-label="閉じる">×</button>
+        </header>
+        <p id="delete-project-message"></p>
+        <p class="project-dialog-help" id="delete-project-impact"></p>
+        <footer class="dialog-footer project-dialog-footer">
+          <button class="secondary-button" id="cancel-project-delete" type="button" data-close-dialog="delete-project-dialog">キャンセル</button>
+          <button class="danger-confirm-button" type="submit">プロジェクトを削除する</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="project-dialog changelog-dialog" id="changelog-dialog" aria-labelledby="changelog-title">
+      <div class="project-dialog-shell changelog-shell">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">WHAT'S NEW</p>
+            <h2 id="changelog-title">Listoの更新履歴</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="changelog-dialog" aria-label="閉じる">×</button>
+        </header>
+        <div class="changelog-list">
+          <section class="changelog-entry is-latest"><header><strong>v0.2.3</strong><time>2026年10月</time></header><h3>iPhone表示を最適化</h3><ul><li>タスク名と属性が画面内で自然に折り返すカード配置へ変更</li><li>Dynamic Islandとホーム画面版の安全領域に対応</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.2.2</strong><time>2026年10月</time></header><h3>iPhoneのログインと同期を自動維持</h3><ul><li>保存済みログインを起動時に自動復元</li><li>バックグラウンドから戻った時にも即時同期</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.2.1</strong></header><h3>プロジェクト名をあとから変更</h3><ul><li>サイドバーの鉛筆ボタンから名称を編集可能に</li><li>タスク、お気に入り、保存フィルターへ一括反映</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.2.0</strong></header><h3>今日やることを、自分で選べるように</h3><ul><li>期限と切り離した「今日やる」リストを追加</li><li>Todoistバックアップからの移行に対応</li><li>プロジェクト削除と確認画面を改善</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.5</strong></header><h3>Mac・iPhone同期</h3><ul><li>Supabase同期、ログイン維持、iPhone共有を追加</li><li>ダークテーマとアプリアイコンを刷新</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.4</strong></header><h3>予定と振り返り</h3><ul><li>期限サマリー、レポート、グラフを追加</li><li>カレンダーで完了状態を確認可能に</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.3</strong></header><h3>整理と工数管理</h3><ul><li>プロジェクト、タグ、サブタスク、時間計測を追加</li><li>お気に入りと保存フィルターに対応</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.2</strong></header><h3>表示とデータ移行</h3><ul><li>テーブル、カンバン、タイムライン、近日予定を追加</li><li>CSV・JSONの入出力に対応</li></ul></section>
+          <section class="changelog-entry"><header><strong>v0.1.0</strong></header><h3>Listo公開</h3><ul><li>リスト、優先度、期限、ローカル自動保存を実装</li></ul></section>
+        </div>
+        <footer class="dialog-footer project-dialog-footer"><span></span><button class="secondary-button" type="button" data-close-dialog="changelog-dialog">閉じる</button></footer>
+      </div>
+    </dialog>
+
     <dialog class="project-dialog" id="project-dialog">
       <form method="dialog" class="project-dialog-shell" id="project-form">
         <header class="dialog-header">
           <div>
-            <p class="dialog-eyebrow">NEW PROJECT</p>
-            <h2>プロジェクトを追加</h2>
+            <p class="dialog-eyebrow" id="project-dialog-eyebrow">NEW PROJECT</p>
+            <h2 id="project-dialog-title">プロジェクトを追加</h2>
           </div>
           <button class="dialog-close" type="button" data-close-dialog="project-dialog" aria-label="閉じる">×</button>
         </header>
         <label class="field field--wide">
           <span>プロジェクト名</span>
+          <input id="project-original-name" type="hidden" />
           <input id="new-project-name" maxlength="30" autocomplete="off" placeholder="例：旅行の準備" required />
         </label>
         <label class="favorite-project-option"><input id="new-project-favorite" type="checkbox" /> <span>お気に入りに追加して上部へ表示</span></label>
-        <p class="project-dialog-help">追加後、そのプロジェクトを開いた状態になります。</p>
+        <p class="project-dialog-help" id="project-dialog-help">追加後、そのプロジェクトを開いた状態になります。</p>
         <footer class="dialog-footer project-dialog-footer">
           <span></span>
           <div>
             <button class="secondary-button" type="button" data-close-dialog="project-dialog">キャンセル</button>
-            <button class="save-button" type="submit" value="default">追加する</button>
+            <button class="save-button" id="save-project" type="submit" value="default">追加する</button>
           </div>
         </footer>
       </form>
@@ -538,6 +588,71 @@
       </form>
     </dialog>
 
+    <dialog class="import-dialog" id="todoist-import-dialog">
+      <form method="dialog" class="import-dialog-shell" id="todoist-import-form">
+        <header class="dialog-header">
+          <div>
+            <p class="dialog-eyebrow">MOVE FROM TODOIST</p>
+            <h2>Todoistから移行</h2>
+          </div>
+          <button class="dialog-close" type="button" data-close-dialog="todoist-import-dialog" aria-label="閉じる">×</button>
+        </header>
+
+        <div class="import-file-summary">
+          <span class="import-file-icon todoist-file-icon">ZIP</span>
+          <div><strong id="todoist-file-name">Todoistバックアップ</strong><small id="todoist-file-meta">ZIPまたは複数のプロジェクトCSVに対応</small></div>
+          <button type="button" id="change-todoist-file">選び直す</button>
+        </div>
+
+        <div id="todoist-import-content" hidden>
+          <div class="todoist-summary-grid" aria-label="Todoist取り込み概要">
+            <div><span>プロジェクト</span><strong id="todoist-project-count">0</strong></div>
+            <div><span>タスク</span><strong id="todoist-task-count">0</strong></div>
+            <div><span>サブタスク</span><strong id="todoist-subtask-count">0</strong></div>
+            <div><span>確認事項</span><strong id="todoist-warning-count">0</strong></div>
+          </div>
+
+          <div class="import-option-grid todoist-options">
+            <label class="field">
+              <span>重複タスク</span>
+              <select id="todoist-duplicate-mode">
+                <option value="skip">同じタスクはスキップ</option>
+                <option value="include">重複しても取り込む</option>
+              </select>
+            </label>
+            <p>現在のListoデータは消さず、Todoistのタスクを追加します。</p>
+          </div>
+
+          <section class="preview-panel">
+            <div class="import-section-heading">
+              <div><span class="section-icon">▦</span><strong>取り込みプレビュー</strong></div>
+              <small id="todoist-preview-summary"></small>
+            </div>
+            <div class="csv-preview-scroll">
+              <table class="csv-preview-table">
+                <thead><tr><th>タスク名</th><th>プロジェクト</th><th>優先度</th><th>期限</th><th>繰り返し</th><th>タグ</th></tr></thead>
+                <tbody id="todoist-preview-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <details class="todoist-warning-panel" id="todoist-warning-panel" hidden>
+            <summary>確認が必要な項目</summary>
+            <ul id="todoist-warning-list"></ul>
+          </details>
+        </div>
+
+        <p class="import-error" id="todoist-import-error" role="alert"></p>
+        <footer class="dialog-footer">
+          <small class="import-note">Todoistの完了済みタスクは、バックアップCSVに含まれている場合だけ取り込まれます。</small>
+          <div>
+            <button class="secondary-button" type="button" data-close-dialog="todoist-import-dialog">キャンセル</button>
+            <button class="save-button" id="execute-todoist-import" type="submit" disabled>Listoへ追加</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
     <dialog class="project-dialog sync-dialog" id="sync-dialog">
       <div class="project-dialog-shell sync-dialog-shell">
         <header class="dialog-header sync-dialog-header">
@@ -612,6 +727,7 @@
     </dialog>
 
     <script src="task-core.js"></script>
+    <script src="todoist-import.js"></script>
     <script src="script.js"></script>
     <script src="sync-core.js"></script>
     <script src="sync-config.js"></script>

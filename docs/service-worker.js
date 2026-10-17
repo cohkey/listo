@@ -1,9 +1,10 @@
-const CACHE_NAME = "listo-shell-v4";
+const CACHE_NAME = "listo-shell-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./task-core.js",
+  "./todoist-import.js",
   "./script.js",
   "./sync-core.js",
   "./sync-config.js",

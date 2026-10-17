@@ -14,6 +14,7 @@
   let syncTimer = 0;
   let pollingTimer = 0;
   let sessionRefreshTimer = 0;
+  let sessionRefreshPromise = null;
   let syncing = false;
   let currentState = "local";
   let ui = {};
@@ -160,14 +161,22 @@
   }
 
   async function refreshSession() {
-    const session = readSession();
-    if (!session?.refreshToken) throw new Error("もう一度ログインしてください");
+    if (sessionRefreshPromise) return sessionRefreshPromise;
+    sessionRefreshPromise = (async () => {
+      const session = readSession();
+      if (!session?.refreshToken) throw new Error("もう一度ログインしてください");
+      try {
+        const response = await rawRequest("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: session.refreshToken } });
+        return saveSession(response);
+      } catch (error) {
+        if (isPermanentSessionError(error)) clearSession();
+        throw error;
+      }
+    })();
     try {
-      const response = await rawRequest("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: session.refreshToken } });
-      return saveSession(response);
-    } catch (error) {
-      if (isPermanentSessionError(error)) clearSession();
-      throw error;
+      return await sessionRefreshPromise;
+    } finally {
+      sessionRefreshPromise = null;
     }
   }
 
@@ -229,6 +238,13 @@
       setAuthFeedback("error", Core.authErrorMessage(error));
       return false;
     }
+  }
+
+  function resumeAutomaticSync() {
+    if (global.document?.visibilityState === "hidden") return;
+    const session = readSession();
+    if (session?.refreshToken) scheduleSessionRefresh(session);
+    syncNow({ quiet: true });
   }
 
   async function authorizedRequest(path, options = {}) {
@@ -471,9 +487,13 @@
       setStatus("signedOut", "この端末からログアウトしました。ローカルデータは残っています。");
       setAuthFeedback("idle", "ログアウトしました。");
     });
-    global.addEventListener("online", () => syncNow({ quiet: true }));
+    global.addEventListener("online", resumeAutomaticSync);
     global.addEventListener("offline", () => setStatus("offline"));
-    global.addEventListener("focus", () => syncNow({ quiet: true }));
+    global.addEventListener("focus", resumeAutomaticSync);
+    global.addEventListener("pageshow", resumeAutomaticSync);
+    global.document?.addEventListener("visibilitychange", () => {
+      if (global.document.visibilityState === "visible") resumeAutomaticSync();
+    });
     pollingTimer = global.setInterval(() => syncNow({ quiet: true }), POLL_INTERVAL);
     const importedSharedConfig = importSharedConfig();
     refreshUi();

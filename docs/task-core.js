@@ -25,6 +25,7 @@
     deletedAt: task.deletedAt || null,
     trackedSeconds: Math.max(0, Number(task.trackedSeconds) || 0),
     timerStartedAt: Number(task.timerStartedAt) > 0 ? Number(task.timerStartedAt) : null,
+    plannedToday: Boolean(task.plannedToday),
   });
 
   function nextRecurringDue(due, repeat, today = new Date().toISOString().slice(0, 10)) {
@@ -59,6 +60,7 @@
       actual: 0,
       trackedSeconds: 0,
       timerStartedAt: null,
+      plannedToday: false,
       subtasks: task.subtasks.map((item) => ({ ...item, id: makeId(), completed: false })),
       createdAt: now,
     });
@@ -247,6 +249,41 @@
     return { name, projects: added ? [...projects, name] : [...projects], added };
   }
 
+  function renameProject(tasks, projects, favoriteProjects, savedFilters, rawOldName, rawNewName) {
+    const oldName = normalizeProjectName(rawOldName);
+    const newName = normalizeProjectName(rawNewName);
+    const unchanged = {
+      changed: false,
+      affected: 0,
+      tasks: [...tasks],
+      projects: [...projects],
+      favoriteProjects: [...favoriteProjects],
+      savedFilters: [...savedFilters],
+    };
+    if (!oldName || !newName) return { ...unchanged, reason: "invalid" };
+    if (oldName === "未分類") return { ...unchanged, reason: "reserved" };
+    if (oldName === newName) return { ...unchanged, reason: "same" };
+    if (!projects.includes(oldName) && !tasks.some((task) => task.project === oldName)) return { ...unchanged, reason: "missing" };
+    if (projects.includes(newName) || tasks.some((task) => task.project === newName)) return { ...unchanged, reason: "duplicate" };
+    let affected = 0;
+    const nextTasks = tasks.map((task) => {
+      if (task.project !== oldName) return task;
+      affected += 1;
+      return { ...task, project: newName };
+    });
+    return {
+      changed: true,
+      affected,
+      reason: null,
+      tasks: nextTasks,
+      projects: [...new Set(projects.includes(oldName)
+        ? projects.map((project) => project === oldName ? newName : project)
+        : [...projects, newName])],
+      favoriteProjects: [...new Set(favoriteProjects.map((project) => project === oldName ? newName : project))],
+      savedFilters: savedFilters.map((filter) => filter.project === oldName ? { ...filter, project: newName } : filter),
+    };
+  }
+
   function removeProject(tasks, projects, favoriteProjects, savedFilters, rawName) {
     const name = normalizeProjectName(rawName);
     if (!name || name === "未分類") return { removed: false, moved: 0, tasks: [...tasks], projects: [...projects], favoriteProjects: [...favoriteProjects], savedFilters: [...savedFilters] };
@@ -327,6 +364,7 @@
       actual: Math.max(0, Number(details.actual) || 0),
       subtasks: Array.isArray(details.subtasks) ? details.subtasks.map((item) => ({ ...item })) : [],
       repeat: ["daily", "weekdays", "weekly", "monthly"].includes(details.repeat) ? details.repeat : "none",
+      plannedToday: details.plannedToday === undefined ? Boolean(task.plannedToday) : Boolean(details.plannedToday),
     };
   }
 
@@ -345,6 +383,7 @@
       actual: task.actual,
       subtasks: task.subtasks,
       repeat: task.repeat,
+      plannedToday: task.plannedToday,
       [field]: value,
     };
     if (field === "status" && !["todo", "doing", "done"].includes(value)) details.status = task.status;
@@ -396,6 +435,7 @@
     { key: "estimate", label: "見積時間", aliases: ["見積時間", "見積工数", "予定工数", "estimate"] },
     { key: "actual", label: "実績時間", aliases: ["実績時間", "実績工数", "作業時間", "actual"] },
     { key: "subtasks", label: "サブタスク", aliases: ["サブタスク", "チェックリスト", "subtasks", "subtask"] },
+    { key: "plannedToday", label: "今日やる", aliases: ["今日やる", "今日のタスク", "my day", "today"] },
   ];
 
   function autoMapHeaders(headers) {
@@ -461,6 +501,7 @@
         estimate: read(row, "estimate"),
         actual: read(row, "actual"),
         subtasks,
+        plannedToday: ["1", "true", "yes", "はい", "○", "対象"].includes(read(row, "plannedToday").toLowerCase()),
       }, now + index));
     });
     return { tasks, skippedRows };
@@ -489,13 +530,14 @@
   };
 
   function tasksToCSV(tasks) {
-    const headers = ["タスク名", "ステータス", "優先度", "期限", "プロジェクト", "タグ", "見積時間", "実績時間", "サブタスク"];
+    const headers = ["タスク名", "ステータス", "優先度", "期限", "プロジェクト", "タグ", "見積時間", "実績時間", "サブタスク", "今日やる"];
     const statusLabels = { todo: "未着手", doing: "進行中", done: "完了" };
     const priorityLabels = { high: "高", normal: "通常", low: "低" };
     const rows = tasks.map((task) => [
       task.title, statusLabels[task.status] || "未着手", priorityLabels[task.priority] || "通常", task.due || "", task.project || "未分類",
       (task.tags || []).join("; "), task.estimate || "", task.actual || "",
       (task.subtasks || []).map((item) => `${item.completed ? "[x]" : "[ ]"} ${item.title}`).join(" | "),
+      task.plannedToday ? "はい" : "",
     ]);
     return `\uFEFF${[headers, ...rows].map((row) => row.map(escapeCSV).join(",")).join("\r\n")}`;
   }
@@ -514,7 +556,7 @@
 
   return {
     makeId, normalizeTask, nextRecurringDue, createNextRecurringTask, getLiveActualHours, startTaskTimer, stopTaskTimer, getDeadlineStatus, calculateDashboardStats, normalizeSavedFilter, matchesSavedFilter,
-    compareBy, sortTasks, groupTasksByProject, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
+    compareBy, sortTasks, groupTasksByProject, groupTasks, resolveProject, normalizeProjectName, normalizeTagName, addProject, renameProject, removeProject, collectTags, renameTag, removeTag, applyTaskDetails, applyTableEdit, closeDialog,
     CSV_FIELDS, parseCSV, autoMapHeaders, normalizeImportDate, csvRowsToTasks, mergeImportedTasks, tasksToCSV, createBackup, parseBackup,
   };
 });
