@@ -51,10 +51,20 @@ test("App Storeを使わないiPhoneホーム画面版に対応する", () => {
   assert.match(html, /apple-mobile-web-app-status-bar-style/);
   assert.match(html, /<script src="pwa\.js"><\/script>/);
   assert.match(pwaScript, /serviceWorker\.register\("\.\/service-worker\.js"\)/);
-  assert.match(serviceWorker, /listo-shell-v8/);
+  assert.match(serviceWorker, /listo-shell-v9/);
   assert.match(serviceWorker, /sync\.js/);
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"background_color": "#08111f"/);
+});
+
+test("iPhone幅でタスクカードと安全領域が画面内に収まる", () => {
+  assert.match(html, /viewport-fit=cover/);
+  assert.match(css, /min-height: 100dvh/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*grid-template-columns: 26px minmax\(0, 1fr\) auto auto auto/);
+  assert.match(css, /\.task-body \{ grid-column: 2 \/ -1; grid-row: 1; width: 100%; padding-right: 34px; \}/);
+  assert.match(css, /\.task-title \{ white-space: normal; text-overflow: clip; overflow-wrap: anywhere/);
+  assert.match(css, /height: calc\(64px \+ env\(safe-area-inset-top\)\)/);
+  assert.match(css, /overscroll-behavior-x: contain/);
 });
 
 test("TodoistのZIPまたは複数CSVを専用画面から安全に移行できる", () => {
@@ -204,7 +214,7 @@ test("アプリ内にバージョンと簡潔な更新履歴がある", () => {
   assert.match(html, /id="changelog-dialog"/);
   assert.match(html, /v0\.2\.2/);
   assert.match(html, /Listoの更新履歴/);
-  assert.match(script, /const APP_VERSION = "0\.2\.2"/);
+  assert.match(script, /const APP_VERSION = "0\.2\.3"/);
   assert.match(css, /\.changelog-entry/);
 });
 

@@ -22,6 +22,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
@@ -208,6 +209,7 @@ h1 { margin: 0; font-size: clamp(34px, 4vw, 48px); line-height: 1.1; letter-spac
 .sort-plus { color: #aaa69d; font-size: 10px; }
 
 .task-list { display: grid; gap: 9px; }
+.task-list, .task-group, .task-group-stack { min-width: 0; max-width: 100%; }
 .quick-add[hidden], .task-list[hidden], .table-view[hidden], .kanban-board[hidden], .timeline-view[hidden], .upcoming-calendar[hidden], .report-view[hidden], .view-switcher[hidden], .list-toolbar[hidden], .sort-control[hidden], .progress-ring[hidden], .timer-panel[hidden] { display: none !important; }
 .task-group { display: grid; gap: 8px; }
 .task-group + .task-group { margin-top: 22px; }
@@ -215,7 +217,7 @@ h1 { margin: 0; font-size: clamp(34px, 4vw, 48px); line-height: 1.1; letter-spac
 .task-group-heading h2 { margin: 0; font-size: 12px; font-weight: 750; }
 .task-group-heading span { color: var(--muted); font-size: 9px; }
 .task-group-stack { display: grid; gap: 8px; }
-.task-card { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 15px 16px; border: 1px solid transparent; border-radius: 15px; background: rgba(255,253,248,.74); transition: transform .2s, background .2s, border-color .2s, box-shadow .2s; animation: taskIn .3s ease both; }
+.task-card { width: 100%; min-width: 0; max-width: 100%; display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 15px 16px; border: 1px solid transparent; border-radius: 15px; background: rgba(255,253,248,.74); transition: transform .2s, background .2s, border-color .2s, box-shadow .2s; animation: taskIn .3s ease both; }
 .task-card:hover { transform: translateY(-1px); background: var(--surface-strong); border-color: var(--line); box-shadow: 0 10px 26px rgba(55,48,33,.06); }
 .task-card[data-due-tone="overdue"] { border-left: 4px solid #d85643; background: linear-gradient(90deg, rgba(254,233,229,.75), rgba(255,253,248,.74) 24%); }
 .task-card[data-due-tone="today"] { border-left: 4px solid #e78a44; background: linear-gradient(90deg, rgba(255,240,226,.72), rgba(255,253,248,.74) 24%); }
@@ -225,9 +227,10 @@ h1 { margin: 0; font-size: clamp(34px, 4vw, 48px); line-height: 1.1; letter-spac
 .task-check { flex: 0 0 auto; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 1.5px solid #c8c2b7; border-radius: 50%; background: transparent; color: transparent; transition: .2s; }
 .task-check:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .task-check span { font-size: 12px; font-weight: 700; }
-.task-body { min-width: 0; flex: 1; }
+.task-body { min-width: 0; max-width: 100%; flex: 1; }
 .task-title { margin: 0; overflow: hidden; color: var(--text); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 6px; color: #969187; font-size: 10px; }
+.task-meta { min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 6px; color: #969187; font-size: 10px; }
+.task-meta > *, .tag-row > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .task-date.is-overdue { color: var(--accent); font-weight: 700; }
 .task-project-label, .status-label, .priority-label { padding: 2px 7px; border: 1px solid transparent; border-radius: 99px; font-weight: 700; }
 .task-project-label { border-radius: 6px; }
@@ -393,6 +396,39 @@ body.is-dark .subtask-row { border-color: #3c3d38; }
   .deadline-summary-grid { grid-template-columns: repeat(2, 1fr); }
   .report-view { grid-template-columns: 1fr; }
   .report-card--wide { grid-column: auto; }
+}
+
+@media (max-width: 620px) {
+  .main-content, .content-wrap, .page-heading, .deadline-summary, .quick-add, .view-switcher, .list-toolbar, .task-list, .table-view, .table-scroll, .kanban-board, .timeline-view, .upcoming-calendar, .report-view { min-width: 0; max-width: 100%; }
+  .topbar { min-height: 64px; height: calc(64px + env(safe-area-inset-top)); }
+  .content-wrap, body.is-wide-layout .content-wrap { margin-inline: 12px; padding-top: 28px; }
+  .page-heading { gap: 12px; }
+  h1 { max-width: 100%; font-size: clamp(28px, 9vw, 38px); overflow-wrap: anywhere; }
+  .quick-input-row, .quick-add-main { min-width: 0; }
+  .quick-input-row input { min-width: 0; }
+  .list-toolbar { flex-wrap: wrap; }
+  .toolbar-actions { width: 100%; overflow-x: auto; padding-bottom: 3px; justify-content: flex-start; scrollbar-width: none; }
+  .toolbar-actions::-webkit-scrollbar { display: none; }
+
+  .task-card {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 9px 8px;
+    padding: 14px 12px 12px;
+  }
+  .task-check { grid-column: 1; grid-row: 1; margin-top: 2px; }
+  .task-body { grid-column: 2 / -1; grid-row: 1; width: 100%; padding-right: 34px; }
+  .task-title { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.45; font-size: 15px; }
+  .task-meta { gap: 6px; }
+  .task-project-label, .status-label, .priority-label, .task-date[data-tone] { white-space: normal; }
+  .today-task-button { grid-column: 2; grid-row: 2; justify-self: start; }
+  .task-timer-button { grid-column: 3; grid-row: 2; }
+  .priority-button { grid-column: 4; grid-row: 2; }
+  .more-button { grid-column: 5; grid-row: 1; align-self: start; justify-self: end; z-index: 1; }
+  .table-scroll, .kanban-board, .timeline-view, .upcoming-calendar { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .dialog-shell, .import-dialog-shell { max-width: 100%; }
 }
 
 @media (max-width: 440px) {
@@ -846,8 +882,8 @@ body.is-dark .csv-preview-table th { background: #30312d; }
 
 @supports (padding: max(0px)) {
   @media (max-width: 760px) {
-    .topbar { padding-top: env(safe-area-inset-top); padding-right: max(18px, env(safe-area-inset-right)); padding-left: max(18px, env(safe-area-inset-left)); }
-    .content-wrap, body.is-wide-layout .content-wrap { width: auto; margin-right: max(16px, env(safe-area-inset-right)); margin-left: max(16px, env(safe-area-inset-left)); padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+    .topbar { padding-top: env(safe-area-inset-top); padding-right: max(14px, env(safe-area-inset-right)); padding-left: max(14px, env(safe-area-inset-left)); }
+    .content-wrap, body.is-wide-layout .content-wrap { width: auto; margin-right: max(12px, env(safe-area-inset-right)); margin-left: max(12px, env(safe-area-inset-left)); padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
     .sidebar { padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   }
 }
